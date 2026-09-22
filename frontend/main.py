@@ -26,6 +26,7 @@ Run:
 
 import os
 import uuid
+import time
 
 import google.auth
 import google.auth.transport.requests
@@ -240,58 +241,118 @@ async def get_cartoon_file(filename: str):
             
     return JSONResponse(status_code=404, content={"detail": f"Cartoon {filename} not found locally or in GCS."})
 
+DEFAULT_SCENARIOS = [
+    {
+        "id": "dentist",
+        "category": "medical",
+        "title": "Dentist Visit",
+        "icon": "🦷",
+        "description": "Visiting the dentist for a tooth checkup with Mom Yamini.",
+        "prompt": "Create a 4-panel visual comic book story for Aarav visiting the dentist with Mom Yamini"
+    },
+    {
+        "id": "haircut",
+        "category": "routines",
+        "title": "Haircut Time",
+        "icon": "✂️",
+        "description": "Getting a gentle haircut with soft electric clippers.",
+        "prompt": "Create a 4-panel visual comic book story for Aarav getting a gentle haircut"
+    },
+    {
+        "id": "school_bus",
+        "category": "school",
+        "title": "Riding the School Bus",
+        "icon": "🚌",
+        "description": "Boarding the yellow school bus and wearing noise-canceling headphones.",
+        "prompt": "Create a 4-panel visual comic book story for Aarav riding the school bus"
+    },
+    {
+        "id": "doctor",
+        "category": "medical",
+        "title": "Doctor Checkup",
+        "icon": "🏥",
+        "description": "A calm pediatric checkup listening to heartbeat with stethoscope.",
+        "prompt": "Create a 4-panel visual comic book story for Aarav at the doctor checkup"
+    },
+    {
+        "id": "airport",
+        "category": "transitions",
+        "title": "Airport Security",
+        "icon": "✈️",
+        "description": "Passing through airport security luggage scanner with blue teddy bear.",
+        "prompt": "Create a 4-panel visual comic book story for Aarav passing airport security"
+    },
+    {
+        "id": "dog_meeting",
+        "category": "social",
+        "title": "Meeting a Friendly Dog",
+        "icon": "🐕",
+        "description": "Asking owner before gently petting a friendly golden retriever.",
+        "prompt": "Create a 4-panel visual comic book story for Aarav meeting a friendly dog"
+    }
+]
+
+CUSTOM_SCENARIOS = []
+
 @app.get("/api/scenarios")
 async def get_scenarios():
-    return [
-        {
-            "id": "dentist",
-            "category": "medical",
-            "title": "Dentist Visit",
-            "icon": "🦷",
-            "description": "Visiting the dentist for a tooth checkup with Mom Yamini.",
-            "prompt": "Create a 4-panel visual comic book story for Aarav visiting the dentist with Mom Yamini"
-        },
-        {
-            "id": "haircut",
-            "category": "routines",
-            "title": "Haircut Time",
-            "icon": "✂️",
-            "description": "Getting a gentle haircut with soft electric clippers.",
-            "prompt": "Create a 4-panel visual comic book story for Aarav getting a gentle haircut"
-        },
-        {
-            "id": "school_bus",
-            "category": "school",
-            "title": "Riding the School Bus",
-            "icon": "🚌",
-            "description": "Boarding the yellow school bus and wearing noise-canceling headphones.",
-            "prompt": "Create a 4-panel visual comic book story for Aarav riding the school bus"
-        },
-        {
-            "id": "doctor",
-            "category": "medical",
-            "title": "Doctor Checkup",
-            "icon": "🏥",
-            "description": "A calm pediatric checkup listening to heartbeat with stethoscope.",
-            "prompt": "Create a 4-panel visual comic book story for Aarav at the doctor checkup"
-        },
-        {
-            "id": "airport",
-            "category": "transitions",
-            "title": "Airport Security",
-            "icon": "✈️",
-            "description": "Passing through airport security luggage scanner with blue teddy bear.",
-            "prompt": "Create a 4-panel visual comic book story for Aarav passing airport security"
-        },
-        {
-            "id": "dog_meeting",
-            "category": "social",
-            "title": "Meeting a Friendly Dog",
-            "icon": "🐕",
-            "description": "Asking owner before gently petting a friendly golden retriever.",
-            "prompt": "Create a 4-panel visual comic book story for Aarav meeting a friendly dog"
+    firestore_scenarios = []
+    try:
+        from app.family_tools import get_firestore_client
+        db = get_firestore_client()
+        if db:
+            docs = db.collection("custom_scenarios").stream()
+            for doc in docs:
+                firestore_scenarios.append(doc.to_dict())
+    except Exception as e:
+        print(f"Firestore scenarios fetch error: {e}")
+
+    all_scenarios = list(DEFAULT_SCENARIOS)
+    existing_ids = {s["id"] for s in all_scenarios}
+
+    for s in CUSTOM_SCENARIOS + firestore_scenarios:
+        if isinstance(s, dict) and s.get("id") and s["id"] not in existing_ids:
+            all_scenarios.append(s)
+            existing_ids.add(s["id"])
+
+    return all_scenarios
+
+@app.post("/api/scenarios")
+async def add_scenario(request: Request):
+    try:
+        body = await request.json()
+        title = body.get("title", "").strip()
+        category = body.get("category", "routines").strip()
+        description = body.get("description", "").strip()
+        prompt = body.get("prompt", "").strip()
+        icon = body.get("icon", "✨").strip()
+
+        if not title or not prompt:
+            return JSONResponse(status_code=400, content={"error": "Title and prompt are required."})
+
+        scenario_id = f"custom_{int(time.time() * 1000)}"
+        scenario_data = {
+            "id": scenario_id,
+            "category": category,
+            "title": title,
+            "icon": icon,
+            "description": description,
+            "prompt": prompt
         }
-    ]
+
+        CUSTOM_SCENARIOS.append(scenario_data)
+
+        try:
+            from app.family_tools import get_firestore_client
+            db = get_firestore_client()
+            if db:
+                db.collection("custom_scenarios").document(scenario_id).set(scenario_data)
+        except Exception as e:
+            print(f"Error saving custom scenario to Firestore: {e}")
+
+        return scenario_data
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/", StaticFiles(directory=_static_dir if os.path.exists(_static_dir) else "static", html=True), name="static")

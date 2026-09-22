@@ -463,6 +463,16 @@
         <input type="text" id="custom-child" class="form-control" value="Aarav">
       </div>
       <div class="form-group">
+        <label>Category</label>
+        <select id="custom-category" class="form-control">
+          <option value="routines" selected>✂️ Daily Routines</option>
+          <option value="medical">🦷 Dental & Medical</option>
+          <option value="school">🏫 School</option>
+          <option value="transitions">✈️ Transitions</option>
+          <option value="social">🐕 Social</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Story Scenario / Topic</label>
         <input type="text" id="custom-topic" class="form-control" placeholder="e.g. Visiting the dentist with Mom Yamini">
       </div>
@@ -475,7 +485,7 @@
       <button class="btn btn-light" onclick="closeCreatorModal()">Cancel</button>
       <button class="btn btn-accent" onclick="submitCustomStory()">
         <span class="material-symbols-outlined">palette</span>
-        Generate Visual Story Page
+        Save Scenario & Generate Page
       </button>
     </div>
   </div>
@@ -590,14 +600,43 @@ function closeCreatorModal() {
   document.getElementById('creator-modal').classList.remove('open');
 }
 
-function submitCustomStory() {
-  const child = document.getElementById('custom-child').value || 'Aarav';
-  const topic = document.getElementById('custom-topic').value || 'Visiting the dentist';
-  const comfort = document.getElementById('custom-comfort').value || 'Blue teddy bear';
+async function submitCustomStory() {
+  const child = (document.getElementById('custom-child').value || 'Aarav').trim();
+  const topic = (document.getElementById('custom-topic').value || 'Visiting the dentist').trim();
+  const comfort = (document.getElementById('custom-comfort').value || 'Blue teddy bear').trim();
+  const category = document.getElementById('custom-category').value || 'routines';
 
+  const title = `${child}'s ${topic}`;
+  const description = `${topic} for ${child} with ${comfort} for sensory comfort.`;
   const prompt = `Create a 4-panel visual comic book story for ${child} ${topic} with comfort item ${comfort}`;
+  const icon = category === 'medical' ? '🦷' : category === 'school' ? '🏫' : category === 'transitions' ? '✈️' : category === 'social' ? '🐕' : '✨';
+
   closeCreatorModal();
-  generateAndOpenStory(`${child}'s ${topic}`, prompt);
+
+  try {
+    const res = await fetch('/api/scenarios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: title,
+        category: category,
+        description: description,
+        prompt: prompt,
+        icon: icon
+      })
+    });
+
+    if (res.ok) {
+      const savedScenario = await res.json();
+      scenariosData.push(savedScenario);
+      renderGallery();
+      showToast('✨ Custom scenario saved to library!');
+    }
+  } catch (e) {
+    console.error('Failed to save custom scenario', e);
+  }
+
+  generateAndOpenStory(title, prompt);
 }
 
 function downloadStoryImage() {
