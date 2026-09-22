@@ -617,19 +617,41 @@ async function generateAndPlayVideoStory() {
   `;
 
   try {
-    const videoPrompt = `Create an animated 30-second video story for ${currentStoryTitle || 'Aarav Going to Dentist'}`;
-    const res = await fetch('/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: videoPrompt, reset_session: true })
-    });
-    const data = await res.json();
-    const parts = data.parts || [];
-    const textStr = parts.map(p => p.text || '').join('\n');
+    const title = currentStoryTitle || 'Aarav Going to Dentist';
+    const prompt = currentStoryPrompt || 'Aarav visiting the dentist';
 
-    const videoUrlRegex = /(https?:\/\/[^\s"'<>\)]+|\/static\/[^\s"'<>\)]+)/gi;
-    const matches = [...textStr.matchAll(videoUrlRegex)].map(m => m[0]);
-    const videoUrl = matches.find(u => /\.(mp4|webm)/i.test(u) || u.includes('story_video'));
+    let videoUrl = null;
+    try {
+      const apiRes = await fetch('/api/generate_video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title, prompt: prompt })
+      });
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (apiData.video_url) {
+          videoUrl = apiData.video_url;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('API video endpoint failed, trying fallback chat...', apiErr);
+    }
+
+    if (!videoUrl) {
+      const videoPrompt = `Create an animated 30-second video story for ${title}`;
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: videoPrompt, reset_session: true })
+      });
+      const data = await res.json();
+      const parts = data.parts || [];
+      const textStr = parts.map(p => p.text || '').join('\n');
+
+      const videoUrlRegex = /(https?:\/\/[^\s"'<>\)]+|\/static\/[^\s"'<>\)]+)/gi;
+      const matches = [...textStr.matchAll(videoUrlRegex)].map(m => m[0]);
+      videoUrl = matches.find(u => /\.(mp4|webm)/i.test(u) || u.includes('story_video'));
+    }
 
     if (videoUrl) {
       currentImageUrl = videoUrl;

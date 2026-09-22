@@ -354,6 +354,25 @@ async def add_scenario(request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.post("/api/generate_video")
+async def generate_video_api(request: Request):
+    try:
+        body = await request.json()
+        title = body.get("title", "Aarav's Social Story").strip()
+        prompt = body.get("prompt", "").strip()
+        
+        from app.video_tools import generate_story_video
+        panel_prompts = [
+            f"{title} - Step 1: Getting ready calmly with Mom Yamini",
+            f"{title} - Step 2: Arriving at destination with blue teddy bear",
+            f"{title} - Step 3: Step-by-step transition wearing noise-canceling headphones",
+            f"{title} - Step 4: Finishing successfully with a big smile and receiving a star sticker reward"
+        ]
+        video_url = await generate_story_video(panel_prompts=panel_prompts, story_title=title)
+        return {"video_url": video_url}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/", StaticFiles(directory=_static_dir if os.path.exists(_static_dir) else "static", html=True), name="static")
 
