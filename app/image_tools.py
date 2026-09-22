@@ -57,6 +57,10 @@ async def generate_cartoon_illustration(
         if not image_bytes:
             return "Failed to generate cartoon illustration."
 
+        import base64
+        b64_str = base64.b64encode(image_bytes).decode("utf-8")
+        data_uri = f"data:{mime_type};base64,{b64_str}"
+
         filename = f"cartoon_{uuid.uuid4().hex[:8]}.jpg"
 
         if tool_context and hasattr(tool_context, "save_artifact"):
@@ -68,14 +72,17 @@ async def generate_cartoon_illustration(
             except Exception:
                 pass
 
-        storage_client = storage.Client(project=PROJECT_ID)
-        bucket = storage_client.bucket(BUCKET_NAME)
-        blob_name = f"story_cartoons/{filename}"
-        blob = bucket.blob(blob_name)
-        blob.upload_from_string(image_bytes, content_type=mime_type)
+        try:
+            storage_client = storage.Client(project=PROJECT_ID)
+            bucket = storage_client.bucket(BUCKET_NAME)
+            blob_name = f"story_cartoons/{filename}"
+            blob = bucket.blob(blob_name)
+            blob.upload_from_string(image_bytes, content_type=mime_type)
+            return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
+        except Exception as gcs_err:
+            print(f"GCS Upload failed ({gcs_err}), falling back to inline base64 Data URI")
+            return data_uri
 
-        public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
-        return public_url
 
     except Exception as e:
         return f"Error generating cartoon illustration: {str(e)}"

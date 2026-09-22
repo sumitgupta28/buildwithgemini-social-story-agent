@@ -253,6 +253,72 @@
     line-height: 1.35;
   }
 
+  /* Profile Customizer Panel */
+  .profile-panel {
+    background: #ffffff;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 0.8rem 1.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  }
+  .profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+    color: #4361ee;
+    font-size: 0.95rem;
+  }
+  .profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.8rem;
+  }
+  .profile-field { display: flex; flex-direction: column; }
+  .profile-field label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #4a5568;
+    margin-bottom: 0.2rem;
+  }
+  .profile-field input {
+    width: 100%;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.88rem;
+    border: 1.5px solid #cbd5e0;
+    border-radius: 10px;
+    outline: none;
+  }
+  .profile-field input:focus { border-color: #4361ee; }
+  .profile-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 0.8rem;
+  }
+  .btn-save {
+    background: #4361ee;
+    color: #fff;
+    border: none;
+    padding: 0.45rem 1rem;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(67, 97, 238, 0.2);
+  }
+  .btn-story {
+    background: #7209b7;
+    color: #fff;
+    border: none;
+    padding: 0.45rem 1rem;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(114, 9, 183, 0.2);
+  }
+
   .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-size: 1.4rem; line-height: 1; vertical-align: middle; color: #4361ee; }
 </style>
 </head>
@@ -264,6 +330,46 @@
     <p>Personalized Visual Social Stories for Special Needs Children</p>
   </div>
 </header>
+
+<!-- Character & Family Customization Panel -->
+<div class="profile-panel">
+  <div class="profile-header" onclick="toggleProfile()">
+    <span>👨‍👩‍👦 Customize Child & Family Characters</span>
+    <span id="toggle-icon">▼</span>
+  </div>
+  <div id="profile-body" class="profile-grid" style="display: flex; flex-direction: column;">
+    <div class="profile-grid">
+      <div class="profile-field">
+        <label>👦 Child's Name</label>
+        <input id="p-child" value="Aarav" placeholder="Child's Name">
+      </div>
+      <div class="profile-field">
+        <label>👩 Mother's Name</label>
+        <input id="p-mother" value="Yamini" placeholder="Mother's Name">
+      </div>
+      <div class="profile-field">
+        <label>👨 Father's Name</label>
+        <input id="p-father" value="Rajesh" placeholder="Father's Name">
+      </div>
+      <div class="profile-field">
+        <label>👩‍🏫 Teacher's Name</label>
+        <input id="p-teacher" value="Ms. Priya" placeholder="Teacher's Name">
+      </div>
+      <div class="profile-field">
+        <label>👵 Aunty / Relative</label>
+        <input id="p-aunty" value="Aunty Anita" placeholder="Aunty / Friend">
+      </div>
+      <div class="profile-field">
+        <label>🧸 Comfort Item</label>
+        <input id="p-comfort" value="Noise-canceling headphones" placeholder="Sensory Item">
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button class="btn-save" onclick="saveCharacterProfile()">💾 Save Character Names</button>
+      <button class="btn-story" onclick="createStoryWithProfile()">📚 Create Visual Story with Characters</button>
+    </div>
+  </div>
+</div>
 
 <div class="quick-bar">
   <span class="quick-label">Quick Ideas:</span>
@@ -285,6 +391,38 @@
 const log = document.getElementById("log");
 const form = document.getElementById("form");
 const input = document.getElementById("input");
+
+function toggleProfile() {
+  const body = document.getElementById("profile-body");
+  const icon = document.getElementById("toggle-icon");
+  if (body.style.display === "none") {
+    body.style.display = "flex";
+    icon.textContent = "▼";
+  } else {
+    body.style.display = "none";
+    icon.textContent = "▲";
+  }
+}
+
+function saveCharacterProfile() {
+  const child = document.getElementById("p-child").value || "Aarav";
+  const mother = document.getElementById("p-mother").value || "Yamini";
+  const father = document.getElementById("p-father").value || "Rajesh";
+  const teacher = document.getElementById("p-teacher").value || "Ms. Priya";
+  const aunty = document.getElementById("p-aunty").value || "Aunty Anita";
+  const comfort = document.getElementById("p-comfort").value || "Noise-canceling headphones";
+
+  const msg = `Set up family profile for ${child}: Mother ${mother}, Father ${father}, Teacher ${teacher}, Relative/Friend ${aunty}, Comfort Item: ${comfort}`;
+  sendQuick(msg);
+}
+
+function createStoryWithProfile() {
+  const child = document.getElementById("p-child").value || "Aarav";
+  const mother = document.getElementById("p-mother").value || "Yamini";
+  const msg = `Create a 4-panel visual comic book story for ${child} visiting the dentist with Mom ${mother}`;
+  sendQuick(msg);
+}
+
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 

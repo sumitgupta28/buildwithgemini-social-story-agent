@@ -20,8 +20,9 @@ _FALLBACK_TEXT = (
     "I couldn't render that view. Could you ask again, maybe for a simpler summary?"
 )
 
-_HTTP_URL_RE = re.compile(r"^https?://", re.I)
+_HTTP_URL_RE = re.compile(r"^(https?://|data:image/)", re.I)
 _IMAGE_NOTE = "Image generated — open the Artifacts panel to view it."
+
 
 def _wrap_a2ui_part(a2ui_message: dict) -> types.Part:
     """Wrap a single A2UI message for rendering in adk web."""
