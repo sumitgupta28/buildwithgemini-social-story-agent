@@ -45,7 +45,17 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-RESOURCE = os.environ["AGENT_ENGINE_RESOURCE_NAME"]
+if "AGENT_ENGINE_RESOURCE_NAME" in os.environ:
+    RESOURCE = os.environ["AGENT_ENGINE_RESOURCE_NAME"]
+else:
+    import json
+    meta_path = os.path.join(os.path.dirname(__file__), "..", "deployment_metadata.json")
+    if os.path.exists(meta_path):
+        with open(meta_path) as f:
+            RESOURCE = json.load(f)["remote_agent_runtime_id"]
+    else:
+        RESOURCE = "projects/973976208178/locations/us-east1/reasoningEngines/7431689252091461632"
+
 # The agent's app directory (matches agent_directory in agents-cli-manifest.yaml).
 AGENT_DIRECTORY = os.environ.get("AGENT_DIRECTORY", "app")
 # Location is embedded in the resource name: projects/<p>/locations/<loc>/reasoningEngines/<id>.
