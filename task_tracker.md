@@ -51,15 +51,18 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-19** | Google Sign-In OAuth 401 `invalid_client` handling fix (`/api/config` endpoint & Demo Caregiver fallback) | ✅ Completed | 2026-09-22 20:37 UTC | 2026-09-22 20:38 UTC | Added runtime config lookup in `frontend/main.py` & graceful fallback in `frontend/static/index.html` |
 | **TASK-20** | Composite A4 Image Generator panel fallback fix (`app/image_tools.py`) & duplicate code removal | ✅ Completed | 2026-09-22 20:39 UTC | 2026-09-22 20:40 UTC | Added PIL panel fallback cards & verified 16/16 tests pass in pytest (`uv run pytest tests/`) |
 | **TASK-21** | Vertex AI Agent Runtime deployment (`projects/169510358457/locations/us-east1/reasoningEngines/7137829376405536768`) | ✅ Completed | 2026-09-22 20:34 UTC | 2026-09-22 20:40 UTC | Deployed A2A agent to Agent Runtime & updated `deployment_metadata.json` |
+| **TASK-22** | GCS Public Bucket Access & Cartoon Image Proxy Fallback (`frontend/main.py`) | ✅ Completed | 2026-09-22 21:00 UTC | 2026-09-22 21:20 UTC | `cartoon_proxy_middleware` handles GET/HEAD & SVG fallback |
+| **TASK-23** | Automated End-to-End Localhost Verification Suite (`scripts/verify_localhost.py`) | ✅ Completed | 2026-09-22 21:23 UTC | 2026-09-22 21:28 UTC | Added script & `test_frontend_localhost_e2e` to pytest; 17/17 passed |
 
 ---
 
 ## 💡 Quick Status Summary
 
-- **Total Tasks Tracked**: 21
-- **Completed**: 21
+- **Total Tasks Tracked**: 23
+- **Completed**: 23
 - **In Progress**: 0
-- **Current Active Branch**: `main-video`
+- **Current Active Branch**: `main`
+
 
 
 
