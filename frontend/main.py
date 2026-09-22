@@ -123,14 +123,10 @@ async def _get_card(client: httpx.AsyncClient) -> AgentCard:
 
 
 def _extract_parts(parts: list) -> list[dict]:
-    """Turn A2A response parts into structured parts for the chat UI.
-
-    Text parts pass through as {"kind": "text"}. A2UI data parts (tagged
-    application/json+a2ui) become {"kind": "a2ui", "data": <message>} so the UI
-    renders the card; each data part is one A2UI message (beginRendering or
-    surfaceUpdate).
-    """
+    """Turn A2A response parts into structured parts for the chat UI."""
     out: list[dict] = []
+    if not parts:
+        return out
     for p in parts:
         root = getattr(p, "root", p)
         if isinstance(root, TextPart) and getattr(root, "text", None):
@@ -140,10 +136,14 @@ def _extract_parts(parts: list) -> list[dict]:
             mime = meta.get("mimeType") if isinstance(meta, dict) else None
             if mime == _A2UI_MIME:
                 out.append({"kind": "a2ui", "data": root.data})
+            else:
+                out.append({"kind": "text", "text": str(root.data)})
         elif isinstance(root, FilePart):
             uri = getattr(getattr(root, "file", None), "uri", None)
             if uri:
                 out.append({"kind": "text", "text": uri})
+        elif hasattr(root, "text") and getattr(root, "text", None):
+            out.append({"kind": "text", "text": str(root.text)})
     return out
 
 
@@ -154,7 +154,7 @@ async def chat(req: Request):
     user_id = body.get("user_id") or "web-user"
     parts: list[dict] = []
 
-    async with httpx.AsyncClient(headers=_auth_headers(), timeout=120) as client:
+    async with httpx.AsyncClient(headers=_auth_headers(), timeout=180.0) as client:
         card = await _get_card(client)
         factory = ClientFactory(
             ClientConfig(
@@ -184,18 +184,34 @@ async def chat(req: Request):
                 last_task = task
                 if getattr(task, "context_id", None):
                     _contexts[user_id] = task.context_id
-            if isinstance(update, TaskArtifactUpdateEvent):
-                got_artifact_update = True
-                parts.extend(_extract_parts(update.artifact.parts))
+            
+            if update is not None:
+                if isinstance(update, TaskArtifactUpdateEvent):
+                    got_artifact_update = True
+                    parts.extend(_extract_parts(getattr(getattr(update, "artifact", None), "parts", [])))
+                elif hasattr(update, "parts"):
+                    p_extracted = _extract_parts(getattr(update, "parts", []))
+                    if p_extracted:
+                        got_artifact_update = True
+                        parts.extend(p_extracted)
 
-        # Non-streaming fallback: pull parts from the final task's artifacts.
-        if not got_artifact_update and last_task is not None:
-            for artifact in getattr(last_task, "artifacts", None) or []:
-                parts.extend(_extract_parts(artifact.parts))
+        # Non-streaming fallback: pull parts from final task's artifacts, history, or output.
+        if not parts and last_task is not None:
+            if hasattr(last_task, "artifacts") and last_task.artifacts:
+                for artifact in last_task.artifacts:
+                    parts.extend(_extract_parts(getattr(artifact, "parts", [])))
+            if not parts and hasattr(last_task, "history") and last_task.history:
+                for msg_item in reversed(last_task.history):
+                    role_val = getattr(msg_item, "role", None)
+                    if role_val in [Role.assistant, "agent", "assistant", "model"]:
+                        p_extracted = _extract_parts(getattr(msg_item, "parts", []))
+                        if p_extracted:
+                            parts.extend(p_extracted)
+                            break
+            if not parts and hasattr(last_task, "status_message") and last_task.status_message:
+                parts.append({"kind": "text", "text": str(last_task.status_message)})
 
     if not parts:
-        # The turn produced no text or UI (e.g. the agent only ran tools, or a
-        # tool stalled). Be honest rather than silent.
         parts = [{"kind": "text", "text": "(The agent didn't return a reply.)"}]
     return JSONResponse({"parts": parts})
 

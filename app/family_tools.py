@@ -1,11 +1,22 @@
 import os
 import datetime
-from google.cloud import firestore
+
+try:
+    from google.cloud import firestore
+except ImportError:
+    firestore = None
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-01-b5f16f2f275a")
+_MEMORY_FAMILY_PROFILES = {}
+_MEMORY_STORIES = []
 
 def get_firestore_client():
-    return firestore.Client(project=PROJECT_ID)
+    if firestore is None:
+        return None
+    try:
+        return firestore.Client(project=PROJECT_ID)
+    except Exception:
+        return None
 
 def manage_family_profile(
     child_name: str,
