@@ -221,13 +221,14 @@ async def generate_cartoon_illustration(
             blob_name = f"story_cartoons/{filename}"
             blob = bucket.blob(blob_name)
             blob.upload_from_string(image_bytes, content_type=mime_type)
-            return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
         except Exception as gcs_err:
-            print(f"GCS Upload failed ({gcs_err}), attempting local static file fallback...")
-            return f"/static/cartoons/{filename}"
+            print(f"GCS Upload failed ({gcs_err}), using local static file fallback...")
+            
+        return f"/static/cartoons/{filename}"
 
     except Exception as e:
         return f"Error generating cartoon illustration: {str(e)}"
+
 
 import asyncio
 
@@ -285,10 +286,11 @@ async def generate_comic_book_page(
         blob_name = f"story_cartoons/{filename}"
         blob = bucket.blob(blob_name)
         blob.upload_from_string(composite_bytes, content_type=mime_type)
-        return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
     except Exception as gcs_err:
-        print(f"GCS Upload failed ({gcs_err}), saving composite image to local static file fallback...")
-        return f"/static/cartoons/{filename}"
+        print(f"GCS Upload failed ({gcs_err}), using local static file fallback...")
+
+    return f"/static/cartoons/{filename}"
+
 
 
 
