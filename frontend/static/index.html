@@ -620,51 +620,30 @@ async function generateAndPlayVideoStory() {
     const title = currentStoryTitle || 'Aarav Going to Dentist';
     const prompt = currentStoryPrompt || 'Aarav visiting the dentist';
 
-    let videoUrl = null;
-    try {
-      const apiRes = await fetch('/api/generate_video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title, prompt: prompt })
-      });
-      if (apiRes.ok) {
-        const apiData = await apiRes.json();
-        if (apiData.video_url) {
-          videoUrl = apiData.video_url;
-        }
+    const apiRes = await fetch('/api/generate_video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, prompt: prompt })
+    });
+    
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.video_url) {
+        const videoUrl = apiData.video_url;
+        currentImageUrl = videoUrl;
+        modalBody.innerHTML = `
+          <video controls autoplay class="modal-story-img" style="max-height:70vh; width:100%; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+            <source src="${videoUrl}" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        `;
+        showToast('🎥 30-Second Animated Video Story ready!');
+        return;
       }
-    } catch (apiErr) {
-      console.warn('API video endpoint failed, trying fallback chat...', apiErr);
     }
-
-    if (!videoUrl) {
-      const videoPrompt = `Create an animated 30-second video story for ${title}`;
-      const res = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: videoPrompt, reset_session: true })
-      });
-      const data = await res.json();
-      const parts = data.parts || [];
-      const textStr = parts.map(p => p.text || '').join('\n');
-
-      const videoUrlRegex = /(https?:\/\/[^\s"'<>\)]+|\/static\/[^\s"'<>\)]+)/gi;
-      const matches = [...textStr.matchAll(videoUrlRegex)].map(m => m[0]);
-      videoUrl = matches.find(u => /\.(mp4|webm)/i.test(u) || u.includes('story_video'));
-    }
-
-    if (videoUrl) {
-      currentImageUrl = videoUrl;
-      modalBody.innerHTML = `
-        <video controls autoplay class="modal-story-img" style="max-height:70vh; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
-          <source src="${videoUrl}" type="video/mp4">
-          Your browser does not support HTML5 video.
-        </video>
-      `;
-      showToast('🎥 30-Second Animated Video Story ready!');
-    } else {
-      modalBody.innerHTML = `<p style="color:red">Failed to generate 30s video story.</p>`;
-    }
+    
+    const errText = await apiRes.text();
+    modalBody.innerHTML = `<p style="color:red">Failed to generate 30s video story (${apiRes.status}: ${errText})</p>`;
   } catch (e) {
     modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
   }
