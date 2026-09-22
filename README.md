@@ -1,7 +1,13 @@
-# social-story-agent
+# BuddyCraft — Personalized Visual Social Story Agent 🎨
 
-Simple ReAct agent
-Agent generated with `agents-cli` version `1.1.0`
+> **Personalized Visual Social Story & Routine Builder for Neurodivergent and Special Needs Children.** Built with Google Agent Development Kit (ADK) and deployed to Vertex AI Agent Runtime.
+
+[![Demo Video](https://img.shields.io/badge/Demo%20Video-Watch%20Recording-blue?style=for-the-badge&logo=googlechrome)](demo_recording.webm)
+
+### 📹 Demo Recording
+Check out `demo_recording.webm` in this repository to see BuddyCraft in action generating personalized social stories with 4-panel cartoon comic book illustrations!
+
+---
 
 ## Project Structure
 
