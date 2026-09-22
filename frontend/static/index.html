@@ -409,12 +409,12 @@
 <main>
   <!-- Category Filters -->
   <div class="category-bar">
-    <button class="cat-tab active" onclick="filterCategory('all')">🌟 All Scenarios</button>
-    <button class="cat-tab" onclick="filterCategory('medical')">🦷 Dental & Medical</button>
-    <button class="cat-tab" onclick="filterCategory('routines')">✂️ Daily Routines</button>
-    <button class="cat-tab" onclick="filterCategory('school')">🏫 School</button>
-    <button class="cat-tab" onclick="filterCategory('transitions')">✈️ Transitions</button>
-    <button class="cat-tab" onclick="filterCategory('social')">🐕 Social</button>
+    <button class="cat-tab active" data-cat="all" onclick="filterCategory('all')">🌟 All Scenarios</button>
+    <button class="cat-tab" data-cat="medical" onclick="filterCategory('medical')">🦷 Dental & Medical</button>
+    <button class="cat-tab" data-cat="routines" onclick="filterCategory('routines')">✂️ Daily Routines</button>
+    <button class="cat-tab" data-cat="school" onclick="filterCategory('school')">🏫 School</button>
+    <button class="cat-tab" data-cat="transitions" onclick="filterCategory('transitions')">✈️ Transitions</button>
+    <button class="cat-tab" data-cat="social" onclick="filterCategory('social')">🐕 Social</button>
   </div>
 
   <!-- Scenario Catalog Cards -->
@@ -483,9 +483,13 @@
     </div>
     <div class="modal-actions">
       <button class="btn btn-light" onclick="closeCreatorModal()">Cancel</button>
-      <button class="btn btn-accent" onclick="submitCustomStory()">
+      <button class="btn btn-light" onclick="saveCustomScenario(false)">
+        <span class="material-symbols-outlined">bookmark_add</span>
+        Save Scenario to Library
+      </button>
+      <button class="btn btn-accent" onclick="saveCustomScenario(true)">
         <span class="material-symbols-outlined">palette</span>
-        Save Scenario & Generate Page
+        Save & Generate Visual Page
       </button>
     </div>
   </div>
@@ -542,11 +546,16 @@ function renderGallery() {
   });
 }
 
-function filterCategory(cat) {
+function setCategory(cat) {
   activeCategory = cat;
-  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  document.querySelectorAll('.cat-tab').forEach(t => {
+    t.classList.toggle('active', t.getAttribute('data-cat') === cat);
+  });
   renderGallery();
+}
+
+function filterCategory(cat) {
+  setCategory(cat);
 }
 
 async function generateAndOpenStory(title, promptText) {
@@ -600,7 +609,7 @@ function closeCreatorModal() {
   document.getElementById('creator-modal').classList.remove('open');
 }
 
-async function submitCustomStory() {
+async function saveCustomScenario(generateAfterSave = false) {
   const child = (document.getElementById('custom-child').value || 'Aarav').trim();
   const topic = (document.getElementById('custom-topic').value || 'Visiting the dentist').trim();
   const comfort = (document.getElementById('custom-comfort').value || 'Blue teddy bear').trim();
@@ -628,15 +637,17 @@ async function submitCustomStory() {
 
     if (res.ok) {
       const savedScenario = await res.json();
-      scenariosData.push(savedScenario);
-      renderGallery();
-      showToast('✨ Custom scenario saved to library!');
+      scenariosData.unshift(savedScenario);
+      setCategory(category);
+      showToast('💾 New scenario saved & added to library!');
     }
   } catch (e) {
     console.error('Failed to save custom scenario', e);
   }
 
-  generateAndOpenStory(title, prompt);
+  if (generateAfterSave) {
+    generateAndOpenStory(title, prompt);
+  }
 }
 
 function downloadStoryImage() {
