@@ -436,15 +436,19 @@
     <div class="modal-actions">
       <button class="btn btn-light" onclick="downloadStoryImage()">
         <span class="material-symbols-outlined">download</span>
-        Download JPG
+        Download Page
       </button>
       <button class="btn btn-light" onclick="printStoryPage()">
         <span class="material-symbols-outlined">print</span>
-        Print Storybook
+        Print Story Page
       </button>
-      <button class="btn btn-accent" onclick="saveToGooglePhotos()">
+      <button class="btn btn-accent" id="video-story-btn" onclick="generateAndPlayVideoStory()">
+        <span class="material-symbols-outlined">movie</span>
+        🎥 Generate 30s Video Story
+      </button>
+      <button class="btn btn-light" onclick="saveToGooglePhotos()">
         <span class="material-symbols-outlined">photo_library</span>
-        Save to Google Photos
+        Save to Photos
       </button>
     </div>
   </div>
@@ -501,6 +505,8 @@
 let scenariosData = [];
 let activeCategory = 'all';
 let currentImageUrl = '';
+let currentStoryTitle = '';
+let currentStoryPrompt = '';
 let googleUserToken = null;
 
 // Fetch preloaded scenarios catalog
@@ -559,6 +565,8 @@ function filterCategory(cat) {
 }
 
 async function generateAndOpenStory(title, promptText) {
+  currentStoryTitle = title;
+  currentStoryPrompt = promptText;
   const modal = document.getElementById('viewer-modal');
   const modalTitle = document.getElementById('viewer-title');
   const modalBody = document.getElementById('viewer-body');
@@ -567,16 +575,17 @@ async function generateAndOpenStory(title, promptText) {
   modalBody.innerHTML = `
     <div class="loader">
       <div class="spinner"></div>
-      <p>🎨 Composite 1-Page Comic Story generating...</p>
+      <p>🎨 Visual Story Page generating...</p>
     </div>
   `;
   modal.classList.add('open');
 
   try {
+    const fullPrompt = `${promptText} with story title "${title}"`;
     const res = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: promptText, reset_session: true })
+      body: JSON.stringify({ message: fullPrompt, reset_session: true })
     });
     const data = await res.json();
     const parts = data.parts || [];
@@ -591,8 +600,50 @@ async function generateAndOpenStory(title, promptText) {
       currentImageUrl = imgUrl;
       modalBody.innerHTML = `<img src="${imgUrl}" class="modal-story-img" alt="${title}">`;
     } else {
-      modalBody.innerHTML = `<p style="color:red">Failed to generate composite image.</p>`;
+      modalBody.innerHTML = `<p style="color:red">Failed to generate composite A4 image.</p>`;
     }
+  } catch (e) {
+    modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
+  }
+}
+
+async function generateAndPlayVideoStory() {
+  const modalBody = document.getElementById('viewer-body');
+  modalBody.innerHTML = `
+    <div class="loader">
+      <div class="spinner"></div>
+      <p>🎥 Generating 30-Second Animated Video Story...</p>
+    </div>
+  `;
+
+  try {
+    const title = currentStoryTitle || 'Aarav Going to Dentist';
+    const prompt = currentStoryPrompt || 'Aarav visiting the dentist';
+
+    const apiRes = await fetch('/api/generate_video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, prompt: prompt })
+    });
+    
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.video_url) {
+        const videoUrl = apiData.video_url;
+        currentImageUrl = videoUrl;
+        modalBody.innerHTML = `
+          <video controls autoplay class="modal-story-img" style="max-height:70vh; width:100%; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+            <source src="${videoUrl}" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        `;
+        showToast('🎥 30-Second Animated Video Story ready!');
+        return;
+      }
+    }
+    
+    const errText = await apiRes.text();
+    modalBody.innerHTML = `<p style="color:red">Failed to generate 30s video story (${apiRes.status}: ${errText})</p>`;
   } catch (e) {
     modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
   }
@@ -617,7 +668,7 @@ async function saveCustomScenario(generateAfterSave = false) {
 
   const title = `${child}'s ${topic}`;
   const description = `${topic} for ${child} with ${comfort} for sensory comfort.`;
-  const prompt = `Create a 4-panel visual comic book story for ${child} ${topic} with comfort item ${comfort}`;
+  const prompt = `Create a visual social story for ${child} ${topic} with comfort item ${comfort}`;
   const icon = category === 'medical' ? '🦷' : category === 'school' ? '🏫' : category === 'transitions' ? '✈️' : category === 'social' ? '🐕' : '✨';
 
   closeCreatorModal();

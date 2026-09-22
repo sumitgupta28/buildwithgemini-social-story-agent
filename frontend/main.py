@@ -248,7 +248,7 @@ DEFAULT_SCENARIOS = [
         "title": "Dentist Visit",
         "icon": "🦷",
         "description": "Visiting the dentist for a tooth checkup with Mom Yamini.",
-        "prompt": "Create a 4-panel visual comic book story for Aarav visiting the dentist with Mom Yamini"
+        "prompt": "Create a visual social story for Aarav visiting the dentist with Mom Yamini"
     },
     {
         "id": "haircut",
@@ -256,7 +256,7 @@ DEFAULT_SCENARIOS = [
         "title": "Haircut Time",
         "icon": "✂️",
         "description": "Getting a gentle haircut with soft electric clippers.",
-        "prompt": "Create a 4-panel visual comic book story for Aarav getting a gentle haircut"
+        "prompt": "Create a visual social story for Aarav getting a gentle haircut"
     },
     {
         "id": "school_bus",
@@ -264,7 +264,7 @@ DEFAULT_SCENARIOS = [
         "title": "Riding the School Bus",
         "icon": "🚌",
         "description": "Boarding the yellow school bus and wearing noise-canceling headphones.",
-        "prompt": "Create a 4-panel visual comic book story for Aarav riding the school bus"
+        "prompt": "Create a visual social story for Aarav riding the school bus"
     },
     {
         "id": "doctor",
@@ -272,7 +272,7 @@ DEFAULT_SCENARIOS = [
         "title": "Doctor Checkup",
         "icon": "🏥",
         "description": "A calm pediatric checkup listening to heartbeat with stethoscope.",
-        "prompt": "Create a 4-panel visual comic book story for Aarav at the doctor checkup"
+        "prompt": "Create a visual social story for Aarav at the doctor checkup"
     },
     {
         "id": "airport",
@@ -280,7 +280,7 @@ DEFAULT_SCENARIOS = [
         "title": "Airport Security",
         "icon": "✈️",
         "description": "Passing through airport security luggage scanner with blue teddy bear.",
-        "prompt": "Create a 4-panel visual comic book story for Aarav passing airport security"
+        "prompt": "Create a visual social story for Aarav passing airport security"
     },
     {
         "id": "dog_meeting",
@@ -288,7 +288,7 @@ DEFAULT_SCENARIOS = [
         "title": "Meeting a Friendly Dog",
         "icon": "🐕",
         "description": "Asking owner before gently petting a friendly golden retriever.",
-        "prompt": "Create a 4-panel visual comic book story for Aarav meeting a friendly dog"
+        "prompt": "Create a visual social story for Aarav meeting a friendly dog"
     }
 ]
 
@@ -351,6 +351,25 @@ async def add_scenario(request: Request):
             print(f"Error saving custom scenario to Firestore: {e}")
 
         return scenario_data
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/generate_video")
+async def generate_video_api(request: Request):
+    try:
+        body = await request.json()
+        title = body.get("title", "Aarav's Social Story").strip()
+        prompt = body.get("prompt", "").strip()
+        
+        from app.video_tools import generate_story_video
+        panel_prompts = [
+            f"{title} - Step 1: Getting ready calmly with Mom Yamini",
+            f"{title} - Step 2: Arriving at destination with blue teddy bear",
+            f"{title} - Step 3: Step-by-step transition wearing noise-canceling headphones",
+            f"{title} - Step 4: Finishing successfully with a big smile and receiving a star sticker reward"
+        ]
+        video_url = await generate_story_video(panel_prompts=panel_prompts, story_title=title)
+        return {"video_url": video_url}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 

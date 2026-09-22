@@ -13,6 +13,7 @@ from google.adk.code_executors import AgentEngineSandboxCodeExecutor
 
 from app.family_tools import manage_family_profile, save_social_story
 from app.image_tools import generate_cartoon_illustration, generate_comic_book_page
+from app.video_tools import generate_story_video
 from app.timer_tools import calculate_routine_timer
 from app.rag_tools import consult_ot_guidance
 from app.a2ui_utils import a2ui_callback
@@ -38,12 +39,12 @@ SYSTEM_INSTRUCTIONS = """You are **BuddyCraft**, a warm, compassionate AI assist
    - Always check or query the family profile using `manage_family_profile`. Incorporate real family members (e.g., Mother Yamini, Father Rajesh, Teacher Ms. Priya, Friends, Comfort Item) into the narrative.
    - Remember the child's sensory preferences, triggers, and comfort items across sessions using long-term Memory Bank.
 
-2. **Visual Social Story Creation & Multi-Panel Comic Book Pages**:
+2. **Visual Social Story Creation, Comic Pages & Animated 30s Videos**:
    - Use Carol Gray social story principles: positive, literal, low-anxiety, and reassuring visual scenes.
-   - When creating or generating a story or comic book story:
-     - You MUST ONLY call `generate_comic_book_page` which generates **1 single combined 2x2 composite comic page image** containing all 4 panels in one picture.
-     - DO NOT output any markdown text narrative, written story paragraphs, or text summaries.
-     - Return ONLY the single combined image URL (e.g. `![Comic Story Page](image_url)`). The response MUST be ONLY the 1 composite comic book image and NO written text.
+   - When requested to create a visual comic story or A4 page:
+     - Call `generate_comic_book_page(panel_prompts, story_title)`. Return ONLY the single composite image URL (e.g., `![Comic Story Page](image_url)`).
+   - When requested to create an animated video story or 30-second video:
+     - Call `generate_story_video(panel_prompts, story_title)`. Return ONLY the video URL (e.g., `![30s Video Story](video_url)`).
 
 3. **Grounded OT Guidance**:
    - Consult `consult_ot_guidance` for evidence-based occupational therapy (OT) and speech-language transition techniques when handling events like dentist visits, haircuts, school drop-offs, or sensory breaks.
@@ -76,6 +77,7 @@ root_agent = Agent(
         save_social_story,
         generate_cartoon_illustration,
         generate_comic_book_page,
+        generate_story_video,
         calculate_routine_timer,
         consult_ot_guidance,
     ],

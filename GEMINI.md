@@ -50,8 +50,7 @@ Ask the user: Option A (simple single-project) or Option B (full CI/CD pipeline 
 
 ---
 
-## Operational Guidelines for Coding Agents
-
+- **Task Tracker Maintenance**: For every new feature, bugfix, or enhancement, always update [`task_tracker.md`](task_tracker.md) following the Task Tracker Process (record initial `⏳ In Progress` status, run verification, update status to `✅ Completed`, and commit `task_tracker.md` with the code changes).
 - **Code preservation**: Only modify code directly targeted by the user's request. Preserve all surrounding code, config values (e.g., `model`), comments, and formatting.
 - **NEVER change the model** unless explicitly asked.
 - **Model 404 errors**: Fix `GOOGLE_CLOUD_LOCATION` (e.g., `global` instead of `us-east1`), not the model name.
