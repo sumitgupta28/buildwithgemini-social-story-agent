@@ -27,6 +27,8 @@ Run:
 import os
 import uuid
 import time
+import re
+
 
 import google.auth
 import google.auth.transport.requests
@@ -121,6 +123,15 @@ async def _get_card(client: httpx.AsyncClient) -> AgentCard:
     return _card
 
 
+def _clean_text_part(text: str) -> str:
+    """Rewrite any internal generativelanguage.googleapis.com URIs to local /static/cartoons/ paths."""
+    if not text:
+        return text
+    pattern = r'https?://generativelanguage\.googleapis\.com/[^\s\)\"\']+/([a-zA-Z0-9_\-\.]+\.(?:jpg|jpeg|png))'
+    cleaned = re.sub(pattern, r'/static/cartoons/\1', text)
+    return cleaned
+
+
 def _extract_parts(parts: list) -> list[dict]:
     """Turn A2A response parts into structured parts for the chat UI."""
     out: list[dict] = []
@@ -129,21 +140,22 @@ def _extract_parts(parts: list) -> list[dict]:
     for p in parts:
         root = getattr(p, "root", p)
         if isinstance(root, TextPart) and getattr(root, "text", None):
-            out.append({"kind": "text", "text": root.text})
+            out.append({"kind": "text", "text": _clean_text_part(root.text)})
         elif getattr(root, "data", None) is not None:
             meta = getattr(root, "metadata", None) or {}
             mime = meta.get("mimeType") if isinstance(meta, dict) else None
             if mime == _A2UI_MIME:
                 out.append({"kind": "a2ui", "data": root.data})
             else:
-                out.append({"kind": "text", "text": str(root.data)})
+                out.append({"kind": "text", "text": _clean_text_part(str(root.data))})
         elif isinstance(root, FilePart):
             uri = getattr(getattr(root, "file", None), "uri", None)
             if uri:
-                out.append({"kind": "text", "text": uri})
+                out.append({"kind": "text", "text": _clean_text_part(uri)})
         elif hasattr(root, "text") and getattr(root, "text", None):
-            out.append({"kind": "text", "text": str(root.text)})
+            out.append({"kind": "text", "text": _clean_text_part(str(root.text))})
     return out
+
 
 
 @app.post("/chat")
