@@ -226,9 +226,19 @@ async def get_cartoon_file(filename: str):
         return FileResponse(local_path)
     
     # GCS proxy fallback
-    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-02-1f7e291be017")
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    if not project_id:
+        try:
+            import google.auth
+            _, project_id = google.auth.default()
+        except Exception:
+            pass
+    if not project_id:
+        project_id = "qwiklabs-gcp-01-eb84874d9448"
+
     bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
     gcs_url = f"https://storage.googleapis.com/{bucket_name}/story_cartoons/{filename}"
+
     
     try:
         async with httpx.AsyncClient() as client:
@@ -373,7 +383,14 @@ async def generate_video_api(request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.get("/api/config")
+async def get_config():
+    return {
+        "google_client_id": os.environ.get("GOOGLE_CLIENT_ID", "")
+    }
+
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
+
 app.mount("/", StaticFiles(directory=_static_dir if os.path.exists(_static_dir) else "static", html=True), name="static")
 
 

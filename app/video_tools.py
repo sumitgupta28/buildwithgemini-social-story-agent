@@ -9,8 +9,9 @@ from google.genai import types
 from google.adk.tools import ToolContext
 from app.image_tools import _fetch_raw_panel_bytes, _wrap_text
 
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-02-1f7e291be017")
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-01-eb84874d9448")
 BUCKET_NAME = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{PROJECT_ID}")
+
 
 async def generate_story_video(
     panel_prompts: list[str],

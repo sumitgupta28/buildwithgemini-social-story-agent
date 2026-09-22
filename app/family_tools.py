@@ -16,9 +16,10 @@ def _get_project_id() -> str:
             return project
     except Exception:
         pass
-    return "qwiklabs-gcp-02-1f7e291be017"
+    return "qwiklabs-gcp-01-eb84874d9448"
 
 PROJECT_ID = _get_project_id()
+
 _MEMORY_FAMILY_PROFILES = {}
 _MEMORY_STORIES = []
 
@@ -53,52 +54,69 @@ def manage_family_profile(
     Returns:
         JSON string or status message with the family profile details.
     """
-    try:
-        db = get_firestore_client()
-        doc_ref = db.collection("family_profiles").document(child_name.strip().lower())
+    c_key = child_name.strip().lower()
 
-        if action.lower() == "set":
-            data = {
-                "child_name": child_name.strip(),
-                "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-            }
-            if mother_name:
-                data["mother_name"] = mother_name.strip()
-            if father_name:
-                data["father_name"] = father_name.strip()
-            if teacher_name:
-                data["teacher_name"] = teacher_name.strip()
-            if friends is not None:
-                data["friends"] = friends
-            if comfort_item:
-                data["comfort_item"] = comfort_item.strip()
+    if action.lower() == "set":
+        data = {
+            "child_name": child_name.strip(),
+            "updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        if mother_name:
+            data["mother_name"] = mother_name.strip()
+        if father_name:
+            data["father_name"] = father_name.strip()
+        if teacher_name:
+            data["teacher_name"] = teacher_name.strip()
+        if friends is not None:
+            data["friends"] = friends
+        if comfort_item:
+            data["comfort_item"] = comfort_item.strip()
 
-            doc_ref.set(data, merge=True)
-            return f"Successfully updated family profile for {child_name}."
+        try:
+            db = get_firestore_client()
+            if db:
+                doc_ref = db.collection("family_profiles").document(c_key)
+                doc_ref.set(data, merge=True)
+        except Exception as e:
+            print(f"Firestore set profile warning: {e}")
 
-        else:
-            # Action: get
-            doc = doc_ref.get()
-            if not doc.exists:
-                return f"No family profile found for '{child_name}'. You can set one using action='set'."
-            
-            profile = doc.to_dict()
-            details = [f"Profile for {profile.get('child_name', child_name)}:"]
-            if "mother_name" in profile:
-                details.append(f"- Mother: {profile['mother_name']}")
-            if "father_name" in profile:
-                details.append(f"- Father: {profile['father_name']}")
-            if "teacher_name" in profile:
-                details.append(f"- Teacher: {profile['teacher_name']}")
-            if "friends" in profile and profile["friends"]:
-                details.append(f"- Friends: {', '.join(profile['friends'])}")
-            if "comfort_item" in profile:
-                details.append(f"- Comfort Item: {profile['comfort_item']}")
-            
-            return "\n".join(details)
+        if c_key not in _MEMORY_FAMILY_PROFILES:
+            _MEMORY_FAMILY_PROFILES[c_key] = {}
+        _MEMORY_FAMILY_PROFILES[c_key].update(data)
+        return f"Successfully updated family profile for {child_name}."
 
-    except Exception as e:
-        return f"Error accessing Firestore family profile: {str(e)}"
+    else:
+        # Action: get
+        profile = None
+        try:
+            db = get_firestore_client()
+            if db:
+                doc_ref = db.collection("family_profiles").document(c_key)
+                doc = doc_ref.get()
+                if doc.exists:
+                    profile = doc.to_dict()
+        except Exception as e:
+            print(f"Firestore get profile warning: {e}")
+
+        if not profile:
+            profile = _MEMORY_FAMILY_PROFILES.get(c_key)
+
+        if not profile:
+            return f"No family profile found for '{child_name}'. You can set one using action='set'."
+        
+        details = [f"Profile for {profile.get('child_name', child_name)}:"]
+        if "mother_name" in profile:
+            details.append(f"- Mother: {profile['mother_name']}")
+        if "father_name" in profile:
+            details.append(f"- Father: {profile['father_name']}")
+        if "teacher_name" in profile:
+            details.append(f"- Teacher: {profile['teacher_name']}")
+        if "friends" in profile and profile["friends"]:
+            details.append(f"- Friends: {', '.join(profile['friends'])}")
+        if "comfort_item" in profile:
+            details.append(f"- Comfort Item: {profile['comfort_item']}")
+        
+        return "\n".join(details)
 
 
 def save_social_story(child_name: str, story_title: str, steps: list[str]) -> str:
@@ -112,20 +130,23 @@ def save_social_story(child_name: str, story_title: str, steps: list[str]) -> st
     Returns:
         Status message confirming the story was saved.
     """
+    now = datetime.datetime.now(datetime.timezone.utc)
+    doc_id = f"{child_name.strip().lower()}_{now.strftime('%Y%m%d_%H%M%S')}"
+
+    story_data = {
+        "child_name": child_name.strip(),
+        "story_title": story_title.strip(),
+        "steps": steps,
+        "created_at": now.isoformat(),
+    }
+
     try:
         db = get_firestore_client()
-        now = datetime.datetime.now(datetime.timezone.utc)
-        doc_id = f"{child_name.strip().lower()}_{now.strftime('%Y%m%d_%H%M%S')}"
-
-        story_data = {
-            "child_name": child_name.strip(),
-            "story_title": story_title.strip(),
-            "steps": steps,
-            "created_at": now.isoformat(),
-        }
-
-        db.collection("social_stories").document(doc_id).set(story_data)
-        return f"Saved social story '{story_title}' for {child_name} with ID {doc_id}."
-
+        if db:
+            db.collection("social_stories").document(doc_id).set(story_data)
     except Exception as e:
-        return f"Error saving social story: {str(e)}"
+        print(f"Firestore save story warning: {e}")
+
+    _MEMORY_STORIES.append(story_data)
+    return f"Saved social story '{story_title}' for {child_name} with ID {doc_id}."
+

@@ -28,7 +28,8 @@ def _get_project_id() -> str:
             return project
     except Exception:
         pass
-    return "qwiklabs-gcp-02-1f7e291be017"
+    return "qwiklabs-gcp-01-eb84874d9448"
+
 
 PROJECT_ID = _get_project_id()
 

@@ -15,10 +15,11 @@ def _get_project_id() -> str:
             return project
     except Exception:
         pass
-    return "qwiklabs-gcp-02-1f7e291be017"
+    return "qwiklabs-gcp-01-eb84874d9448"
 
-PROJECT_ID = "qwiklabs-gcp-02-1f7e291be017"
-BUCKET_NAME = "social-story-media-qwiklabs-gcp-02-1f7e291be017"
+PROJECT_ID = _get_project_id()
+BUCKET_NAME = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{PROJECT_ID}")
+
 
 import io
 import math
@@ -47,13 +48,27 @@ def _composite_panels_to_single_image(
     story_title: str = ""
 ) -> bytes:
     images = []
-    for b in raw_panel_bytes:
+    for idx, b in enumerate(raw_panel_bytes):
+        img = None
         if b:
             try:
                 img = Image.open(io.BytesIO(b)).convert("RGB")
-                images.append(img)
             except Exception as err:
                 print(f"Failed to parse panel image bytes: {err}")
+        if not img:
+            img = Image.new("RGB", (600, 420), color="#e2e8f0")
+            d = ImageDraw.Draw(img)
+            d.rectangle([10, 10, 590, 410], outline="#94a3b8", width=3)
+            d.rectangle([30, 30, 570, 390], fill="#f1f5f9")
+            sub_text = panel_subtitles[idx] if (panel_subtitles and idx < len(panel_subtitles)) else f"Step {idx+1}"
+            sub_clean = sub_text.replace("*", "").replace("#", "").strip()
+            try:
+                font_card = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+            except Exception:
+                font_card = ImageFont.load_default()
+            d.text((300, 210), f"🎨 {sub_clean[:35]}", fill="#334155", font=font_card, anchor="mm")
+        images.append(img)
+
     if not images:
         return None
 
@@ -192,6 +207,15 @@ async def generate_cartoon_illustration(
                 pass
 
         try:
+            static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "static", "cartoons")
+            os.makedirs(static_dir, exist_ok=True)
+            local_path = os.path.join(static_dir, filename)
+            with open(local_path, "wb") as f:
+                f.write(image_bytes)
+        except Exception:
+            pass
+
+        try:
             storage_client = storage.Client(project=PROJECT_ID)
             bucket = storage_client.bucket(BUCKET_NAME)
             blob_name = f"story_cartoons/{filename}"
@@ -200,11 +224,6 @@ async def generate_cartoon_illustration(
             return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
         except Exception as gcs_err:
             print(f"GCS Upload failed ({gcs_err}), attempting local static file fallback...")
-            static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "static", "cartoons")
-            os.makedirs(static_dir, exist_ok=True)
-            local_path = os.path.join(static_dir, filename)
-            with open(local_path, "wb") as f:
-                f.write(image_bytes)
             return f"/static/cartoons/{filename}"
 
     except Exception as e:
@@ -251,34 +270,13 @@ async def generate_comic_book_page(
             pass
 
     try:
-        storage_client = storage.Client(project=PROJECT_ID)
-        bucket = storage_client.bucket(BUCKET_NAME)
-        blob_name = f"story_cartoons/{filename}"
-        blob = bucket.blob(blob_name)
-        blob.upload_from_string(composite_bytes, content_type=mime_type)
-        return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
-    except Exception as gcs_err:
-        print(f"GCS Upload failed ({gcs_err}), saving composite image to local static file fallback...")
         static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "static", "cartoons")
         os.makedirs(static_dir, exist_ok=True)
         local_path = os.path.join(static_dir, filename)
         with open(local_path, "wb") as f:
             f.write(composite_bytes)
-        return f"/static/cartoons/{filename}"
-    if not composite_bytes:
-        return "Failed to composite comic book page image."
-
-    filename = f"comic_combined_{uuid.uuid4().hex[:8]}.jpg"
-    mime_type = "image/jpeg"
-
-    if tool_context and hasattr(tool_context, "save_artifact"):
-        try:
-            artifact_part = types.Part.from_bytes(data=composite_bytes, mime_type=mime_type)
-            res = tool_context.save_artifact(filename=filename, artifact=artifact_part)
-            if hasattr(res, "__await__"):
-                await res
-        except Exception:
-            pass
+    except Exception as local_err:
+        print(f"Local static file write error: {local_err}")
 
     try:
         storage_client = storage.Client(project=PROJECT_ID)
@@ -289,10 +287,7 @@ async def generate_comic_book_page(
         return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
     except Exception as gcs_err:
         print(f"GCS Upload failed ({gcs_err}), saving composite image to local static file fallback...")
-        static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "static", "cartoons")
-        os.makedirs(static_dir, exist_ok=True)
-        local_path = os.path.join(static_dir, filename)
-        with open(local_path, "wb") as f:
-            f.write(composite_bytes)
         return f"/static/cartoons/{filename}"
+
+
 

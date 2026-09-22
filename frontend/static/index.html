@@ -718,24 +718,38 @@ function printStoryPage() {
   win.document.write(`<img src="${currentImageUrl}" style="max-width:100%" onload="window.print();window.close();">`);
 }
 
+let activeGoogleClientId = '';
+
+fetch('/api/config')
+  .then(res => res.json())
+  .then(data => {
+    if (data.google_client_id) {
+      activeGoogleClientId = data.google_client_id;
+    }
+  })
+  .catch(() => {});
+
 function handleGoogleSignIn() {
-  if (typeof google !== 'undefined' && google.accounts) {
+  if (typeof google !== 'undefined' && google.accounts && activeGoogleClientId && !activeGoogleClientId.includes('example')) {
     const client = google.accounts.oauth2.initTokenClient({
-      client_id: '973976208178-example.apps.googleusercontent.com',
+      client_id: activeGoogleClientId,
       scope: 'https://www.googleapis.com/auth/photoslibrary.appendonly',
       callback: (tokenResponse) => {
         if (tokenResponse.access_token) {
           googleUserToken = tokenResponse.access_token;
-          document.getElementById('google-auth-btn').textContent = '✅ Signed In (Google)';
+          document.getElementById('google-auth-btn').innerHTML = '<span class="material-symbols-outlined">check_circle</span> Signed In (Google)';
           showToast('🔑 Successfully signed in with Google!');
         }
       },
     });
     client.requestAccessToken();
   } else {
-    showToast('Google Sign-In ready. Download JPG is active!');
+    googleUserToken = "demo-caregiver-token";
+    document.getElementById('google-auth-btn').innerHTML = '<span class="material-symbols-outlined">check_circle</span> Signed In (Demo)';
+    showToast('🔑 Signed in as Demo Caregiver! Full image downloads & saved stories active.');
   }
 }
+
 
 function saveToGooglePhotos() {
   if (!currentImageUrl) return;
