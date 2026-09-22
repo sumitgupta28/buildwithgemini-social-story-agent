@@ -4,6 +4,8 @@
 
 ![BuddyCraft Demo](demo.gif)
 
+> 📹 **Video Demo**: Watch the full high-definition video demonstration in [`demo_video.mp4`](demo_video.mp4).
+
 ---
 
 ## 🌟 Overview
