@@ -440,7 +440,7 @@
       </button>
       <button class="btn btn-light" onclick="printStoryPage()">
         <span class="material-symbols-outlined">print</span>
-        Print A4 Comic Page
+        Print Story Page
       </button>
       <button class="btn btn-accent" id="video-story-btn" onclick="generateAndPlayVideoStory()">
         <span class="material-symbols-outlined">movie</span>
@@ -544,7 +544,7 @@ function renderGallery() {
       <div class="card-footer">
         <button class="card-btn" onclick="generateAndOpenStory('${s.title}', '${s.prompt}')">
           <span class="material-symbols-outlined">auto_awesome</span>
-          View A4 Comic Page
+          View Story Page
         </button>
       </div>
     `;
@@ -575,7 +575,7 @@ async function generateAndOpenStory(title, promptText) {
   modalBody.innerHTML = `
     <div class="loader">
       <div class="spinner"></div>
-      <p>🎨 Composite A4 Comic Story Page generating...</p>
+      <p>🎨 Visual Story Page generating...</p>
     </div>
   `;
   modal.classList.add('open');
@@ -689,7 +689,7 @@ async function saveCustomScenario(generateAfterSave = false) {
 
   const title = `${child}'s ${topic}`;
   const description = `${topic} for ${child} with ${comfort} for sensory comfort.`;
-  const prompt = `Create a 4-panel visual comic book story for ${child} ${topic} with comfort item ${comfort}`;
+  const prompt = `Create a visual social story for ${child} ${topic} with comfort item ${comfort}`;
   const icon = category === 'medical' ? '🦷' : category === 'school' ? '🏫' : category === 'transitions' ? '✈️' : category === 'social' ? '🐕' : '✨';
 
   closeCreatorModal();
