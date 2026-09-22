@@ -255,7 +255,8 @@ async def generate_comic_book_page(
 
     composite_bytes = _composite_panels_to_single_image(raw_panel_bytes, panel_subtitles=prompts, story_title=story_title)
     if not composite_bytes:
-        return "Failed to composite comic book page image."
+        return "Failed to generate image for given Story."
+
 
     filename = f"comic_combined_{uuid.uuid4().hex[:8]}.jpg"
     mime_type = "image/jpeg"

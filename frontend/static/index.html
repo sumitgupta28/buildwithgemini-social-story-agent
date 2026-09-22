@@ -600,7 +600,8 @@ async function generateAndOpenStory(title, promptText) {
       currentImageUrl = imgUrl;
       modalBody.innerHTML = `<img src="${imgUrl}" class="modal-story-img" alt="${title}">`;
     } else {
-      modalBody.innerHTML = `<p style="color:red">Failed to generate composite A4 image.</p>`;
+      modalBody.innerHTML = `<p style="color:red">Failed to generate image for given Story.</p>`;
+
     }
   } catch (e) {
     modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
