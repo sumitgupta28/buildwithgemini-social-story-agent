@@ -218,6 +218,42 @@ async def chat(req: Request):
     return JSONResponse({"parts": parts})
 
 
+@app.middleware("http")
+async def cartoon_proxy_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/static/cartoons/") and request.method in ("GET", "HEAD"):
+
+        filename = path.replace("/static/cartoons/", "")
+        local_path = os.path.join(os.path.dirname(__file__), "static", "cartoons", filename)
+        if os.path.exists(local_path):
+            from fastapi.responses import FileResponse
+            return FileResponse(local_path)
+        
+        # GCS proxy fallback
+        project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+        if not project_id:
+            try:
+                import google.auth
+                _, project_id = google.auth.default()
+            except Exception:
+                pass
+        if not project_id:
+            project_id = "qwiklabs-gcp-01-eb84874d9448"
+
+        bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
+        gcs_url = f"https://storage.googleapis.com/{bucket_name}/story_cartoons/{filename}"
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(gcs_url)
+                if resp.status_code == 200:
+                    from fastapi.responses import Response
+                    return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+        except Exception as e:
+            print(f"GCS Proxy Fetch Error: {e}")
+
+    return await call_next(request)
+
 @app.get("/static/cartoons/{filename}")
 async def get_cartoon_file(filename: str):
     local_path = os.path.join(os.path.dirname(__file__), "static", "cartoons", filename)
@@ -250,6 +286,7 @@ async def get_cartoon_file(filename: str):
         print(f"GCS Proxy Fetch Error: {e}")
             
     return JSONResponse(status_code=404, content={"detail": f"Cartoon {filename} not found locally or in GCS."})
+
 
 DEFAULT_SCENARIOS = [
     {
@@ -315,7 +352,9 @@ async def get_scenarios():
             for doc in docs:
                 firestore_scenarios.append(doc.to_dict())
     except Exception as e:
-        print(f"Firestore scenarios fetch error: {e}")
+        # Gracefully handle uninitialized Firestore DB or pending IAM permissions
+        pass
+
 
     all_scenarios = list(DEFAULT_SCENARIOS)
     existing_ids = {s["id"] for s in all_scenarios}
