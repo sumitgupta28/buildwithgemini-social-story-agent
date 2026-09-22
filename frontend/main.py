@@ -218,11 +218,16 @@ async def chat(req: Request):
     return JSONResponse({"parts": parts})
 
 
+_PLACEHOLDER_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+<rect width="800" height="600" fill="#1e293b"/>
+<text x="400" y="280" font-family="sans-serif" font-size="28" fill="#f8fafc" text-anchor="middle" font-weight="bold">Social Story Illustration</text>
+<text x="400" y="330" font-family="sans-serif" font-size="18" fill="#94a3b8" text-anchor="middle">Image is being generated or archived</text>
+</svg>"""
+
 @app.middleware("http")
 async def cartoon_proxy_middleware(request: Request, call_next):
     path = request.url.path
     if path.startswith("/static/cartoons/") and request.method in ("GET", "HEAD"):
-
         filename = path.replace("/static/cartoons/", "")
         local_path = os.path.join(os.path.dirname(__file__), "static", "cartoons", filename)
         if os.path.exists(local_path):
@@ -247,10 +252,20 @@ async def cartoon_proxy_middleware(request: Request, call_next):
             async with httpx.AsyncClient() as client:
                 resp = await client.get(gcs_url)
                 if resp.status_code == 200:
+                    media_type = resp.headers.get("content-type", "image/jpeg")
+                    if request.method == "HEAD":
+                        from fastapi.responses import Response
+                        return Response(content=b"", media_type=media_type, headers={"content-length": str(len(resp.content))})
                     from fastapi.responses import Response
-                    return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+                    return Response(content=resp.content, media_type=media_type)
         except Exception as e:
             print(f"GCS Proxy Fetch Error: {e}")
+
+        # SVG placeholder fallback for missing images to prevent broken UI icons or 404 console errors
+        from fastapi.responses import Response
+        if request.method == "HEAD":
+            return Response(content=b"", media_type="image/svg+xml", headers={"content-length": str(len(_PLACEHOLDER_SVG.encode()))})
+        return Response(content=_PLACEHOLDER_SVG.encode("utf-8"), media_type="image/svg+xml")
 
     return await call_next(request)
 
@@ -275,7 +290,6 @@ async def get_cartoon_file(filename: str):
     bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
     gcs_url = f"https://storage.googleapis.com/{bucket_name}/story_cartoons/{filename}"
 
-    
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(gcs_url)
@@ -285,7 +299,9 @@ async def get_cartoon_file(filename: str):
     except Exception as e:
         print(f"GCS Proxy Fetch Error: {e}")
             
-    return JSONResponse(status_code=404, content={"detail": f"Cartoon {filename} not found locally or in GCS."})
+    from fastapi.responses import Response
+    return Response(content=_PLACEHOLDER_SVG.encode("utf-8"), media_type="image/svg+xml")
+
 
 
 DEFAULT_SCENARIOS = [

@@ -263,3 +263,10 @@ def test_reasoning_engine_stream(server_fixture: subprocess.Popen[str]) -> None:
         for event in events
     )
     assert has_text, "No text content in reasoning_engine events"
+
+
+def test_frontend_localhost_e2e():
+    """Verify frontend server script scripts/verify_localhost.py passes end to end."""
+    import scripts.verify_localhost as verify_mod
+    verify_mod.test_endpoints()
+
