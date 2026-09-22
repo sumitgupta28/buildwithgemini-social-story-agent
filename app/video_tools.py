@@ -5,6 +5,7 @@ import asyncio
 from PIL import Image, ImageDraw, ImageFont
 import imageio.v3 as iio
 from google.cloud import storage
+from google.genai import types
 from google.adk.tools import ToolContext
 from app.image_tools import _fetch_raw_panel_bytes, _wrap_text
 
