@@ -13,6 +13,7 @@ from google.adk.code_executors import AgentEngineSandboxCodeExecutor
 
 from app.family_tools import manage_family_profile, save_social_story
 from app.image_tools import generate_cartoon_illustration, generate_comic_book_page
+from app.video_tools import generate_story_video
 from app.timer_tools import calculate_routine_timer
 from app.rag_tools import consult_ot_guidance
 from app.a2ui_utils import a2ui_callback
@@ -76,6 +77,7 @@ root_agent = Agent(
         save_social_story,
         generate_cartoon_illustration,
         generate_comic_book_page,
+        generate_story_video,
         calculate_routine_timer,
         consult_ot_guidance,
     ],
