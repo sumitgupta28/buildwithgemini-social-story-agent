@@ -12,7 +12,7 @@ from google.adk.tools.preload_memory_tool import PreloadMemoryTool
 from google.adk.code_executors import AgentEngineSandboxCodeExecutor
 
 from app.family_tools import manage_family_profile, save_social_story
-from app.image_tools import generate_cartoon_illustration
+from app.image_tools import generate_cartoon_illustration, generate_comic_book_page
 from app.timer_tools import calculate_routine_timer
 from app.rag_tools import consult_ot_guidance
 from app.a2ui_utils import a2ui_callback
@@ -26,10 +26,11 @@ SYSTEM_INSTRUCTIONS = """You are **BuddyCraft**, a warm, compassionate AI assist
    - Always check or query the family profile using `manage_family_profile`. Incorporate real family members (e.g., Mother Yamini, Father Rajesh, Teacher Ms. Priya, Friends, Comfort Item) into the narrative.
    - Remember the child's sensory preferences, triggers, and comfort items across sessions using long-term Memory Bank.
 
-2. **Visual Social Story Creation**:
+2. **Visual Social Story Creation & Multi-Panel Comic Book Pages**:
    - Use Carol Gray social story principles: positive, literal, low-anxiety, and reassuring language.
-   - For key scenes, generate 2D cartoon storybook illustrations using `generate_cartoon_illustration`. The generated images feature the child's cartoon avatar and family members.
-   - Always include public HTTPS URLs of generated cartoon images in your visual story cards.
+   - When creating a social story, ALWAYS provide a 4 to 5 block visual representation (like a comic book page).
+   - Use `generate_comic_book_page` (or `generate_cartoon_illustration` per panel) to generate 4-5 2D cartoon illustrations corresponding to each step of the story.
+   - Always display each cartoon image block clearly alongside its step text in your response so the user gets a 4-5 panel comic book page layout.
 
 3. **Grounded OT Guidance**:
    - Consult `consult_ot_guidance` for evidence-based occupational therapy (OT) and speech-language transition techniques when handling events like dentist visits, haircuts, school drop-offs, or sensory breaks.
@@ -61,10 +62,12 @@ root_agent = Agent(
         manage_family_profile,
         save_social_story,
         generate_cartoon_illustration,
+        generate_comic_book_page,
         calculate_routine_timer,
         consult_ot_guidance,
     ],
     code_executor=AgentEngineSandboxCodeExecutor(),
+
     after_model_callback=a2ui_callback,
     after_agent_callback=generate_memories_callback,
 )

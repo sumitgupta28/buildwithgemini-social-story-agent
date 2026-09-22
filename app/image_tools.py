@@ -79,3 +79,37 @@ async def generate_cartoon_illustration(
 
     except Exception as e:
         return f"Error generating cartoon illustration: {str(e)}"
+
+import asyncio
+
+async def generate_comic_book_page(
+    panel_prompts: list[str],
+    tool_context: ToolContext = None,
+) -> list[dict]:
+    """Generates a 4 to 5 block comic book page layout with cartoon panel illustrations.
+
+    Args:
+        panel_prompts: List of 4 to 5 scene descriptions for each comic panel step (e.g. ['Aarav putting on shoes with Mom Yamini', 'Aarav walking into dentist office', 'Aarav sitting in dentist chair', 'Aarav getting a star sticker']).
+        tool_context: ADK ToolContext used to save artifact files to Playground.
+
+    Returns:
+        List of dictionaries containing panel number, scene description prompt, and cartoon image public HTTPS URL.
+    """
+    if not panel_prompts:
+        return []
+
+    # Limit to 5 panels max for optimal performance and visual density
+    prompts = panel_prompts[:5]
+
+    async def _gen_panel(idx: int, p_text: str):
+        url = await generate_cartoon_illustration(p_text, tool_context=tool_context)
+        return {
+            "panel": idx + 1,
+            "description": p_text,
+            "image_url": url,
+        }
+
+    tasks = [_gen_panel(i, p) for i, p in enumerate(prompts)]
+    panels = await asyncio.gather(*tasks)
+    return list(panels)
+
