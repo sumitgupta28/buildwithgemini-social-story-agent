@@ -6,7 +6,19 @@ try:
 except ImportError:
     firestore = None
 
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-01-b5f16f2f275a")
+def _get_project_id() -> str:
+    if os.environ.get("GOOGLE_CLOUD_PROJECT"):
+        return os.environ["GOOGLE_CLOUD_PROJECT"]
+    try:
+        import google.auth
+        _, project = google.auth.default()
+        if project:
+            return project
+    except Exception:
+        pass
+    return "qwiklabs-gcp-02-1f7e291be017"
+
+PROJECT_ID = _get_project_id()
 _MEMORY_FAMILY_PROFILES = {}
 _MEMORY_STORIES = []
 

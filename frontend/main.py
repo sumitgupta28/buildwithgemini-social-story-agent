@@ -91,10 +91,8 @@ app = FastAPI()
 
 @app.exception_handler(Exception)
 async def _json_errors(request: Request, exc: Exception):
-    # Always return JSON so the browser never receives a plain-text 500 page
-    # (which shows up in the chat as "Unexpected token 'I', "Internal S"... is
-    # not valid JSON"). Any server-side failure now surfaces as a readable
-    # message in the chat bubble instead.
+    # Clear cached context IDs on error so subsequent requests start a fresh session
+    _contexts.clear()
     return JSONResponse(
         status_code=200,
         content={
@@ -152,6 +150,8 @@ async def chat(req: Request):
     body = await req.json()
     message = body.get("message", "")
     user_id = body.get("user_id") or "web-user"
+    if body.get("reset_session") or body.get("new_session"):
+        _contexts.pop(user_id, None)
     parts: list[dict] = []
 
     async with httpx.AsyncClient(headers=_auth_headers(), timeout=180.0) as client:
@@ -203,7 +203,8 @@ async def chat(req: Request):
             if not parts and hasattr(last_task, "history") and last_task.history:
                 for msg_item in reversed(last_task.history):
                     role_val = getattr(msg_item, "role", None)
-                    if role_val in [Role.assistant, "agent", "assistant", "model"]:
+                    role_str = str(getattr(role_val, "value", role_val))
+                    if role_val == Role.agent or role_str in ["agent", "assistant", "model"]:
                         p_extracted = _extract_parts(getattr(msg_item, "parts", []))
                         if p_extracted:
                             parts.extend(p_extracted)
@@ -216,8 +217,84 @@ async def chat(req: Request):
     return JSONResponse({"parts": parts})
 
 
-# Serve the chat UI (keep this mount last so /chat wins).
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+@app.get("/static/cartoons/{filename}")
+async def get_cartoon_file(filename: str):
+    local_path = os.path.join(os.path.dirname(__file__), "static", "cartoons", filename)
+    if os.path.exists(local_path):
+        from fastapi.responses import FileResponse
+        return FileResponse(local_path)
+    
+    # GCS proxy fallback
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-02-1f7e291be017")
+    bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
+    gcs_url = f"https://storage.googleapis.com/{bucket_name}/story_cartoons/{filename}"
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(gcs_url)
+            if resp.status_code == 200:
+                from fastapi.responses import Response
+                return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
+    except Exception as e:
+        print(f"GCS Proxy Fetch Error: {e}")
+            
+    return JSONResponse(status_code=404, content={"detail": f"Cartoon {filename} not found locally or in GCS."})
+
+@app.get("/api/scenarios")
+async def get_scenarios():
+    return [
+        {
+            "id": "dentist",
+            "category": "medical",
+            "title": "Dentist Visit",
+            "icon": "🦷",
+            "description": "Visiting the dentist for a tooth checkup with Mom Yamini.",
+            "prompt": "Create a 4-panel visual comic book story for Aarav visiting the dentist with Mom Yamini"
+        },
+        {
+            "id": "haircut",
+            "category": "routines",
+            "title": "Haircut Time",
+            "icon": "✂️",
+            "description": "Getting a gentle haircut with soft electric clippers.",
+            "prompt": "Create a 4-panel visual comic book story for Aarav getting a gentle haircut"
+        },
+        {
+            "id": "school_bus",
+            "category": "school",
+            "title": "Riding the School Bus",
+            "icon": "🚌",
+            "description": "Boarding the yellow school bus and wearing noise-canceling headphones.",
+            "prompt": "Create a 4-panel visual comic book story for Aarav riding the school bus"
+        },
+        {
+            "id": "doctor",
+            "category": "medical",
+            "title": "Doctor Checkup",
+            "icon": "🏥",
+            "description": "A calm pediatric checkup listening to heartbeat with stethoscope.",
+            "prompt": "Create a 4-panel visual comic book story for Aarav at the doctor checkup"
+        },
+        {
+            "id": "airport",
+            "category": "transitions",
+            "title": "Airport Security",
+            "icon": "✈️",
+            "description": "Passing through airport security luggage scanner with blue teddy bear.",
+            "prompt": "Create a 4-panel visual comic book story for Aarav passing airport security"
+        },
+        {
+            "id": "dog_meeting",
+            "category": "social",
+            "title": "Meeting a Friendly Dog",
+            "icon": "🐕",
+            "description": "Asking owner before gently petting a friendly golden retriever.",
+            "prompt": "Create a 4-panel visual comic book story for Aarav meeting a friendly dog"
+        }
+    ]
+
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/", StaticFiles(directory=_static_dir if os.path.exists(_static_dir) else "static", html=True), name="static")
 
 
 if __name__ == "__main__":
