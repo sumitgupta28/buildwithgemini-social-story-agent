@@ -57,6 +57,6 @@ Ask the user: Option A (simple single-project) or Option B (full CI/CD pipeline 
 - **NEVER change the model** unless explicitly asked.
 - **Model 404 errors**: Fix `GOOGLE_CLOUD_LOCATION` (e.g., `global` instead of `us-east1`), not the model name.
 - **ADK tool imports**: Import the tool instance, not the module: `from google.adk.tools.load_web_page import load_web_page`
-- **Run Python with `uv`**: `uv run python script.py`. Run `agents-cli install` first.
+- **Infrastructure & Prerequisites Synchronization**: Whenever a new GCP service, tool, API, storage bucket, or database dependency is added or modified, always update BOTH [`scripts/setup_prereqs.sh`](scripts/setup_prereqs.sh) and the Explicit GCP Service & Resource Dependencies table in [`README.md`](README.md) to ensure automated setup and documentation remain completely synchronized.
 - **Stop on repeated errors**: If the same error appears 3+ times, fix the root cause instead of retrying.
 - **Terraform conflicts** (Error 409): Use `terraform import` instead of retrying creation.

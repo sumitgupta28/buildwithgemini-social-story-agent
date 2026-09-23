@@ -68,7 +68,46 @@ social-story-agent/
 
 ---
 
-## 情绪 Setup & Running Instructions
+## 🚀 Infrastructure Dependencies & Setup
+
+### Explicit GCP Service & Resource Dependencies
+
+BuddyCraft relies on the following Google Cloud infrastructure components:
+
+| Dependency Type | Component / Service | Purpose | Required IAM / Config |
+| :--- | :--- | :--- | :--- |
+| **GCP APIs** | `aiplatform.googleapis.com` | Vertex AI Agent Runtime, Reasoning Engines, Memory Bank | API Enabled |
+| **GCP APIs** | `storage.googleapis.com` | Google Cloud Storage media asset hosting | API Enabled |
+| **GCP APIs** | `firestore.googleapis.com` | Cloud Firestore database for family profiles & saved stories | API Enabled |
+| **GCP APIs** | `logging.googleapis.com` | Structured logging and diagnostic telemetry | API Enabled |
+| **GCP APIs** | `secretmanager.googleapis.com` | API key and credential management | API Enabled |
+| **GCP APIs** | `cloudbuild.googleapis.com` | Container image builds for Agent Runtime | API Enabled |
+| **GCP APIs** | `run.googleapis.com` | Serverless container execution target | API Enabled |
+| **Storage Bucket** | `gs://social-story-media-${PROJECT_ID}` | Stores generated cartoons, comics, and video mp4s | Public object read (`roles/storage.objectViewer`) & CORS enabled |
+| **Database** | Cloud Firestore Native Database | Persists family profiles and social story records | Native Mode initialized, `roles/datastore.user` |
+| **IAM Service Account** | `service-${PROJECT_NUMBER}@gcp-sa-aiplatform-re.iam.gserviceaccount.com` | Agent Runtime execution account | `roles/storage.objectAdmin`, `roles/datastore.user`, `roles/logging.logWriter` |
+
+---
+
+## 🛠️ Automated Infrastructure Provisioning & Deployment
+
+### 1. Provision Prerequisites
+Run the prerequisite script to automatically enable all required GCP APIs, provision the media storage bucket, set CORS policies, initialize Firestore, and configure IAM permissions:
+
+```bash
+./scripts/setup_prereqs.sh <PROJECT_ID> [REGION]
+```
+
+### 2. Run Automated Deployment
+The unified deployment script runs prerequisite validation, executes the `pytest` suite, and deploys the agent to Vertex AI Agent Runtime:
+
+```bash
+./scripts/deploy.sh <PROJECT_ID> [REGION]
+```
+
+---
+
+## 💻 Local Setup & Running Instructions
 
 ### Prerequisites
 - Python 3.11+
