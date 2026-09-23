@@ -313,7 +313,8 @@ DEFAULT_SCENARIOS = [
         "category": "school",
         "title": "Riding the School Bus",
         "icon": "🚌",
-        "description": "Boarding the yellow school bus calmly with noise-canceling headphones and friendly bus driver greeting.",
+        "comfort": "Noise-canceling headphones",
+        "description": "Step 1: Preparing | Mom: The yellow school bus is coming! | Child: My noise-canceling headphones are on.\nStep 2: Boarding | Driver: Good morning! Welcome aboard! | Child: Good morning! I step up carefully.\nStep 3: Riding | Friend: Sit next to me! | Child: Sitting quietly and looking out window.\nStep 4: Arriving | Ms. Priya: Welcome to school! | Child: I had a great bus ride!",
         "prompt": "Riding the School Bus"
     },
     {
@@ -321,7 +322,8 @@ DEFAULT_SCENARIOS = [
         "category": "medical",
         "title": "Dentist Visit",
         "icon": "🦷",
-        "description": "Visiting the dental clinic for a gentle teeth checkup and counting shiny teeth with Dr. Smith.",
+        "comfort": "Blue teddy bear",
+        "description": "Step 1: Arriving | Mom: Dr. Smith is ready to count your shiny teeth! | Child: Holding blue teddy bear.\nStep 2: Sitting | Dr. Smith: Hop in the big magical chair! | Child: Sitting back comfortably.\nStep 3: Checkup | Dr. Smith: Open wide like a happy lion! | Child: Ahh! Counting teeth one by one.\nStep 4: Success | Mom: You did fantastic! | Child: Got a shiny gold sticker!",
         "prompt": "Dentist Visit"
     },
     {
@@ -329,7 +331,8 @@ DEFAULT_SCENARIOS = [
         "category": "routines",
         "title": "Haircut Time",
         "icon": "✂️",
-        "description": "Getting a quiet, comfortable haircut with soft electric clippers and cape.",
+        "comfort": "Weighted lap pad",
+        "description": "Step 1: Preparing | Mom: Time for a cool haircut with Mr. Marco! | Child: Putting on soft cape.\nStep 2: Clippers | Mr. Marco: Listen to the quiet bumblebee clippers. | Child: Feeling calm on lap pad.\nStep 3: Snipping | Mr. Marco: Almost done, looking handsome! | Child: Sitting still and calm.\nStep 4: Done | Mom: Wow, awesome new hairstyle! | Child: High five!",
         "prompt": "Haircut Time"
     },
     {
@@ -337,7 +340,8 @@ DEFAULT_SCENARIOS = [
         "category": "medical",
         "title": "Doctor Checkup",
         "icon": "🏥",
-        "description": "A calm pediatric checkup listening to heartbeat with stethoscope.",
+        "comfort": "Fidget spinner",
+        "description": "Step 1: Waiting | Mom: Dr. Sam will listen to your healthy heart. | Child: Spinning fidget toy.\nStep 2: Stethoscope | Dr. Sam: Cold stethoscope check! | Child: Taking deep breath.\nStep 3: Height & Weight | Dr. Sam: You are growing so tall and strong! | Child: Standing straight.\nStep 4: Complete | Mom: Super proud of your checkup! | Child: All healthy and ready!",
         "prompt": "Doctor Checkup"
     },
     {
@@ -345,7 +349,8 @@ DEFAULT_SCENARIOS = [
         "category": "transitions",
         "title": "Airport Security",
         "icon": "✈️",
-        "description": "Passing through airport security luggage scanner calmly with blue teddy bear.",
+        "comfort": "Comfort blanket",
+        "description": "Step 1: Security Line | Mom: Putting our bags on the conveyor belt. | Child: Holding comfort blanket.\nStep 2: Scanner | Officer: Walk through the magic archway! | Child: Walking calmly through.\nStep 3: Retrieving | Mom: Bags are coming out the other side! | Child: Hugging backpack.\nStep 4: Boarding | Gate Agent: Have a wonderful flight! | Child: Ready to fly on airplane!",
         "prompt": "Airport Security"
     },
     {
@@ -353,7 +358,8 @@ DEFAULT_SCENARIOS = [
         "category": "social",
         "title": "Meeting a Friendly Dog",
         "icon": "🐕",
-        "description": "Asking owner politely before gently petting a friendly golden retriever.",
+        "comfort": "N/A",
+        "description": "Step 1: Spotting Dog | Mom: Look at that gentle doggie! | Child: Asking owner before touching.\nStep 2: Asking | Child: May I pet your friendly dog? | Owner: Yes, he loves gentle pets!\nStep 3: Petting | Owner: Let him sniff your hand first. | Child: Softly petting back.\nStep 4: Farewell | Child: Bye friendly doggie! | Mom: You were so polite and gentle!",
         "prompt": "Meeting a Friendly Dog"
     }
 ]
@@ -469,19 +475,35 @@ async def add_scenario(request: Request):
         description = body.get("description", "").strip()
         prompt = body.get("prompt", "").strip()
         icon = body.get("icon", "✨").strip()
+        comfort = body.get("comfort", "").strip()
+        scenario_id = body.get("id") or f"custom_{int(time.time() * 1000)}"
 
         if not title or not prompt:
             return JSONResponse(status_code=400, content={"error": "Title and prompt are required."})
 
-        scenario_id = f"custom_{int(time.time() * 1000)}"
         scenario_data = {
             "id": scenario_id,
             "category": category,
             "title": title,
             "icon": icon,
+            "comfort": comfort,
             "description": description,
             "prompt": prompt
         }
+
+        # Check if updating an existing DEFAULT scenario
+        updated_default = False
+        for i, s in enumerate(DEFAULT_SCENARIOS):
+            if s["id"] == scenario_id:
+                DEFAULT_SCENARIOS[i] = scenario_data
+                updated_default = True
+                break
+
+        # If not default, update or insert into CUSTOM_SCENARIOS
+        if not updated_default:
+            global CUSTOM_SCENARIOS
+            CUSTOM_SCENARIOS = [s for s in CUSTOM_SCENARIOS if isinstance(s, dict) and s.get("id") != scenario_id]
+            CUSTOM_SCENARIOS.insert(0, scenario_data)
 
         # Check for new characters mentioned in title/description and auto-add to profile
         from app.family_tools import ensure_character_in_profile

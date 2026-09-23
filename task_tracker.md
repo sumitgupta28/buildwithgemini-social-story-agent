@@ -62,13 +62,14 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-30** | Kid's Profile Page, Character Roster, dynamic prompt name binding & 2-Column UI layout | ✅ Completed | 2026-09-23 18:25 UTC | 2026-09-23 18:27 UTC | Added Kid Profile CRUD endpoints, photo upload, character roster manager, zero hardcoded names in prompts, 2-column layout, and 9/9 unit tests passed |
 | **TASK-31** | Deployment to GCP Vertex AI Agent Runtime & verification | ✅ Completed | 2026-09-23 18:27 UTC | 2026-09-23 18:35 UTC | Deployed to `projects/724301906101/locations/us-east1/reasoningEngines/5841549147722743808` & 16/16 tests passed |
 | **TASK-32** | Exclude kid name from scenario titles, modal fields upgrade (100 char topic, description, N/A comfort item, AI storyline suggest button) | ✅ Completed | 2026-09-23 18:44 UTC | 2026-09-23 18:45 UTC | Fixed scenario title name exclusion, upgraded custom scenario modal UI, added `POST /api/suggest_storyline` AI generator endpoint, updated default scenarios format, and 11/11 tests passed |
+| **TASK-33** | Format default catalog scenarios with 4-step dialogues & allow editing/enhancing existing scenarios | ✅ Completed | 2026-09-23 18:51 UTC | 2026-09-23 18:51 UTC | Updated default catalog scenarios with 4-step character dialogues, added `Edit` button on all cards, integrated creator modal pre-population & scenario update API |
 
 ---
 
 ## 💡 Quick Status Summary
 
-- **Total Tasks Tracked**: 32
-- **Completed**: 32
+- **Total Tasks Tracked**: 33
+- **Completed**: 33
 - **In Progress**: 0
 - **Current Active Branch**: `main`
 

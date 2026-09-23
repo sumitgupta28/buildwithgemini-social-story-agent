@@ -647,7 +647,7 @@
 <div class="modal-overlay creator-modal" id="creator-modal">
   <div class="modal-container">
     <div class="modal-header">
-      <h2>+ Create Custom Visual Social Story</h2>
+      <h2 id="creator-modal-title">+ Create Custom Visual Social Story</h2>
       <button class="modal-close" onclick="closeCreatorModal()">&times;</button>
     </div>
     <div class="modal-body">
@@ -707,6 +707,7 @@ let currentImageUrl = '';
 let currentStoryTitle = '';
 let currentStoryPrompt = '';
 let googleUserToken = null;
+let editingScenarioId = null;
 
 let currentProfile = {
   child_name: "Aarav",
@@ -850,15 +851,46 @@ function renderGallery() {
         </div>
         <p class="card-desc">${s.description.replace(/\n/g, '<br>')}</p>
       </div>
-      <div class="card-footer">
-        <button class="card-btn" onclick="generateAndOpenStory('${s.title}', '${s.prompt}')">
+      <div class="card-footer" style="display:flex; gap:0.5rem;">
+        <button class="card-btn" style="flex:1;" onclick="generateAndOpenStory('${s.title}', '${s.prompt}')">
           <span class="material-symbols-outlined">auto_awesome</span>
-          View Story Page
+          View Page
+        </button>
+        <button class="card-btn" style="background:#f1f5f9; color:var(--text-dark); border:1px solid var(--border);" onclick="editScenario('${s.id}')">
+          <span class="material-symbols-outlined">edit</span>
+          Edit
         </button>
       </div>
     `;
     grid.appendChild(card);
   });
+}
+
+function editScenario(id) {
+  const scenario = scenariosData.find(s => s.id === id);
+  if (!scenario) return;
+
+  editingScenarioId = scenario.id;
+  document.getElementById('creator-modal-title').textContent = '✏️ Edit & Enhance Visual Social Story';
+  document.getElementById('custom-category').value = scenario.category || 'routines';
+  document.getElementById('custom-topic').value = scenario.title || '';
+  document.getElementById('custom-desc').value = scenario.description || '';
+
+  const comfortInput = document.getElementById('custom-comfort');
+  const comfortNa = document.getElementById('custom-comfort-na');
+  const comfortVal = scenario.comfort || 'N/A';
+
+  if (comfortVal.toUpperCase() === 'N/A' || comfortVal.toLowerCase() === 'none') {
+    comfortNa.checked = true;
+    comfortInput.value = 'N/A';
+    comfortInput.disabled = true;
+  } else {
+    comfortNa.checked = false;
+    comfortInput.value = comfortVal;
+    comfortInput.disabled = false;
+  }
+
+  openCreatorModal(false);
 }
 
 function setCategory(cat) {
@@ -983,9 +1015,19 @@ function closeViewerModal() {
   document.getElementById('viewer-modal').classList.remove('open');
 }
 
-function openCreatorModal() {
+function openCreatorModal(reset = true) {
+  if (reset) {
+    editingScenarioId = null;
+    document.getElementById('creator-modal-title').textContent = '+ Create Custom Visual Social Story';
+    document.getElementById('custom-topic').value = '';
+    document.getElementById('custom-desc').value = '';
+    document.getElementById('custom-comfort').value = 'Blue teddy bear';
+    document.getElementById('custom-comfort').disabled = false;
+    document.getElementById('custom-comfort-na').checked = false;
+  }
   document.getElementById('creator-modal').classList.add('open');
 }
+
 function closeCreatorModal() {
   document.getElementById('creator-modal').classList.remove('open');
 }
@@ -1058,8 +1100,10 @@ async function saveCustomScenario(generateAfterSave = false) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        id: editingScenarioId,
         title: title,
         category: category,
+        comfort: comfort,
         description: description,
         prompt: prompt,
         icon: icon
@@ -1067,11 +1111,10 @@ async function saveCustomScenario(generateAfterSave = false) {
     });
 
     if (res.ok) {
-      const savedScenario = await res.json();
-      scenariosData.unshift(savedScenario);
+      await loadScenarios(); // Reload fresh scenarios catalog
       setCategory(category);
       loadProfile(); // Refresh roster with any auto-added characters
-      showToast('💾 New scenario saved & added to library!');
+      showToast('💾 Scenario saved & updated in library!');
     }
   } catch (e) {
     console.error('Failed to save custom scenario', e);
