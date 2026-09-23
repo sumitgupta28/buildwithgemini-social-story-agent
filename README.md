@@ -2,9 +2,9 @@
 
 > **Personalized Visual Social Story & Routine Builder for Neurodivergent and Special Needs Children.** Built with Google Agent Development Kit (ADK) and deployed on Google Cloud Vertex AI Agent Runtime.
 
-![BuddyCraft Demo](demo.gif)
+![BuddyCraft Demo](docs/demo.gif)
 
-> 📹 **Video Demo**: Watch the full high-definition video demonstration in [`demo_video.mp4`](demo_video.mp4).
+> 📹 **Video Demo**: Watch the full high-definition video demonstration in [`docs/demo.mp4`](docs/demo.mp4).
 
 ---
 

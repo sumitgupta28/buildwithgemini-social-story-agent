@@ -19,6 +19,7 @@ dependencies = [
     "pillow>=12.3.0",
     "imageio>=2.37.4",
     "imageio-ffmpeg>=0.6.0",
+    "playwright>=1.63.0",
 ]
 requires-python = ">=3.11,<3.14"
 
