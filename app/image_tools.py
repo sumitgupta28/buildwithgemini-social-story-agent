@@ -42,6 +42,22 @@ def _wrap_text(text: str, max_chars: int = 50) -> list[str]:
         lines.append(" ".join(curr))
     return lines[:2]
 
+def _load_font(size: int, bold: bool = True) -> ImageFont.ImageFont:
+    font_paths = [
+        "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    ]
+    for p in font_paths:
+        try:
+            return ImageFont.truetype(p, size)
+        except Exception:
+            continue
+    try:
+        return ImageFont.load_default(size=size)
+    except Exception:
+        return ImageFont.load_default()
+
 def _composite_panels_to_single_image(
     raw_panel_bytes: list[bytes],
     panel_subtitles: list[str] = None,
@@ -76,45 +92,42 @@ def _composite_panels_to_single_image(
     cols = 2
     rows = math.ceil(num_panels / cols)
 
-    # Standard A4 Canvas Dimensions (1240 x 1754 px, aspect ratio ~ 1:1.414)
     canvas_w = 1240
-    header_h = 110
-    footer_h = 20
     margin = 24
+    header_top = 24
+    header_h = 130
 
     available_w = canvas_w - ((cols + 1) * margin)
     panel_w = available_w // cols  # ~584 px
 
-    min_canvas_h = int(canvas_w * 1.414)  # ~1753 px
-    caption_h = 75
-    calc_panel_h = int(panel_w * 0.7) + caption_h  # ~480 px
-    calc_canvas_h = header_h + (rows * calc_panel_h) + ((rows + 1) * margin) + footer_h
-    canvas_h = max(min_canvas_h, calc_canvas_h)
+    caption_h = 80
+    img_h = int(panel_w * 0.76)  # ~444 px per panel illustration
+    panel_h = img_h + caption_h  # ~524 px total panel height
 
-    img_h = calc_panel_h - caption_h
-    panel_h = calc_panel_h
+    # Dynamically fit canvas height so there is ZERO extra empty white space at the bottom
+    calc_canvas_h = (header_top + header_h) + margin + (rows * panel_h) + (rows * margin)
+    canvas_h = calc_canvas_h
 
     canvas = Image.new("RGB", (canvas_w, canvas_h), "#f8fafc")
     draw = ImageDraw.Draw(canvas)
 
-    # Header Banner (A4 Top Title Heading)
+    # Header Banner (Prominent Title Heading)
     header_title = story_title.strip().upper() if story_title else "BUDDYCRAFT VISUAL SOCIAL STORY"
-    draw.rectangle([margin, margin, canvas_w - margin, header_h], fill="#4361ee")
+    draw.rectangle([margin, header_top, canvas_w - margin, header_top + header_h], fill="#4361ee")
     
-    try:
-        title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 30)
-        sub_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
-    except Exception:
-        title_font = ImageFont.load_default()
-        sub_font = ImageFont.load_default()
+    title_font = _load_font(44, bold=True)
+    caption_font = _load_font(20, bold=True)
+    bubble_font = _load_font(17, bold=True)
 
-    draw.text((canvas_w // 2, margin + 45), header_title, fill="#ffffff", font=title_font, anchor="mm")
+    draw.text((canvas_w // 2, header_top + header_h // 2), header_title, fill="#ffffff", font=title_font, anchor="mm")
+
+    start_y_offset = header_top + header_h + margin
 
     for i, img in enumerate(images):
         r = i // cols
         c = i % cols
         x = margin + c * (panel_w + margin)
-        y = header_h + margin + r * (panel_h + margin)
+        y = start_y_offset + r * (panel_h + margin)
 
         # Image section
         resized_img = img.resize((panel_w, img_h), Image.Resampling.LANCZOS)
@@ -140,11 +153,11 @@ def _composite_panels_to_single_image(
             if dialogue_segments:
                 for d_idx, d_text in enumerate(dialogue_segments[:2]):
                     side = "left" if d_idx == 0 else "right"
-                    bx1 = x + 15 if side == "left" else x + panel_w - 270
-                    by1 = y + 15 if side == "left" else y + 65
-                    bx2 = bx1 + 255
-                    by2 = by1 + 55
-                    _draw_speech_bubble(draw, (bx1, by1, bx2, by2), d_text, sub_font, tail_side=side)
+                    bx1 = x + 15 if side == "left" else x + panel_w - 280
+                    by1 = y + 15 if side == "left" else y + 70
+                    bx2 = bx1 + 265
+                    by2 = by1 + 65
+                    _draw_speech_bubble(draw, (bx1, by1, bx2, by2), d_text, bubble_font, tail_side=side)
 
         # Subtitle caption section
         cap_y = y + img_h
@@ -154,12 +167,12 @@ def _composite_panels_to_single_image(
         if panel_subtitles and i < len(panel_subtitles):
             raw_sub = panel_subtitles[i]
             clean_caption = raw_sub.split("|")[0].replace("*", "").replace("#", "").strip()
-            lines = _wrap_text(clean_caption, max_chars=52)
+            lines = _wrap_text(clean_caption, max_chars=48)
             if len(lines) == 1:
-                draw.text((x + panel_w // 2, cap_y + caption_h // 2), lines[0], fill="#1e293b", font=sub_font, anchor="mm")
+                draw.text((x + panel_w // 2, cap_y + caption_h // 2), lines[0], fill="#1e293b", font=caption_font, anchor="mm")
             elif len(lines) >= 2:
-                draw.text((x + panel_w // 2, cap_y + 24), lines[0], fill="#1e293b", font=sub_font, anchor="mm")
-                draw.text((x + panel_w // 2, cap_y + 50), lines[1], fill="#1e293b", font=sub_font, anchor="mm")
+                draw.text((x + panel_w // 2, cap_y + 26), lines[0], fill="#1e293b", font=caption_font, anchor="mm")
+                draw.text((x + panel_w // 2, cap_y + 54), lines[1], fill="#1e293b", font=caption_font, anchor="mm")
 
     out = io.BytesIO()
     canvas.save(out, format="JPEG", quality=92)
@@ -181,17 +194,17 @@ def _draw_speech_bubble(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int
     lines = []
     curr = []
     for w in words:
-        if sum(len(x) for x in curr) + len(w) + len(curr) > 22:
+        if sum(len(x) for x in curr) + len(w) + len(curr) > 20:
             lines.append(" ".join(curr))
             curr = [w]
         else:
             curr.append(w)
     if curr:
         lines.append(" ".join(curr))
-    lines = lines[:2]
+    lines = lines[:3]
     
-    line_h = 16
-    start_y = y1 + ((y2 - y1) - len(lines) * line_h) // 2
+    line_h = 20
+    start_y = y1 + ((y2 - y1) - len(lines) * line_h) // 2 + 2
     for idx, l in enumerate(lines):
         draw.text(((x1 + x2) // 2, start_y + idx * line_h), l, fill="#1e293b", font=font, anchor="mm")
 
