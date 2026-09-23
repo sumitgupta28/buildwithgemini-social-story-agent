@@ -309,28 +309,28 @@ async def get_cartoon_file(filename: str):
 
 DEFAULT_SCENARIOS = [
     {
+        "id": "school_bus",
+        "category": "school",
+        "title": "Riding the School Bus",
+        "icon": "🚌",
+        "description": "Boarding the yellow school bus calmly with noise-canceling headphones.",
+        "prompt": "Riding the School Bus"
+    },
+    {
         "id": "dentist",
         "category": "medical",
         "title": "Dentist Visit",
         "icon": "🦷",
-        "description": "Visiting the dentist for a tooth checkup with Mom Yamini.",
-        "prompt": "Create a visual social story for Aarav visiting the dentist with Mom Yamini"
+        "description": "Visiting the dentist for a friendly teeth checkup with Mom Yamini.",
+        "prompt": "Dentist Visit"
     },
     {
         "id": "haircut",
         "category": "routines",
         "title": "Haircut Time",
         "icon": "✂️",
-        "description": "Getting a gentle haircut with soft electric clippers.",
-        "prompt": "Create a visual social story for Aarav getting a gentle haircut"
-    },
-    {
-        "id": "school_bus",
-        "category": "school",
-        "title": "Riding the School Bus",
-        "icon": "🚌",
-        "description": "Boarding the yellow school bus and wearing noise-canceling headphones.",
-        "prompt": "Create a visual social story for Aarav riding the school bus"
+        "description": "Getting a gentle haircut with quiet electric clippers.",
+        "prompt": "Haircut Time"
     },
     {
         "id": "doctor",
@@ -338,7 +338,7 @@ DEFAULT_SCENARIOS = [
         "title": "Doctor Checkup",
         "icon": "🏥",
         "description": "A calm pediatric checkup listening to heartbeat with stethoscope.",
-        "prompt": "Create a visual social story for Aarav at the doctor checkup"
+        "prompt": "Doctor Checkup"
     },
     {
         "id": "airport",
@@ -346,7 +346,7 @@ DEFAULT_SCENARIOS = [
         "title": "Airport Security",
         "icon": "✈️",
         "description": "Passing through airport security luggage scanner with blue teddy bear.",
-        "prompt": "Create a visual social story for Aarav passing airport security"
+        "prompt": "Airport Security"
     },
     {
         "id": "dog_meeting",
@@ -354,7 +354,7 @@ DEFAULT_SCENARIOS = [
         "title": "Meeting a Friendly Dog",
         "icon": "🐕",
         "description": "Asking owner before gently petting a friendly golden retriever.",
-        "prompt": "Create a visual social story for Aarav meeting a friendly dog"
+        "prompt": "Meeting a Friendly Dog"
     }
 ]
 
@@ -422,6 +422,60 @@ async def add_scenario(request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+def _build_dialogue_panels(title: str, topic: str) -> list[str]:
+    t_lower = (title + " " + topic).lower()
+    
+    if "bus" in t_lower:
+        return [
+            "Waiting for Bus | Yamini: We are waiting for the yellow bus! | Aarav: My blue backpack is ready!",
+            "Boarding Bus | Bus Driver: Good morning Aarav! | Aarav: Good morning! I hold handrail.",
+            "Riding Bus | Friend: Sit with me Aarav! | Aarav: Headphones keep ride quiet.",
+            "Arriving at School | Teacher: Welcome to school Aarav! | Aarav: I did a great job!"
+        ]
+    elif "dentist" in t_lower:
+        return [
+            "Preparing for Dentist | Yamini: Dr. Priya will check teeth! | Aarav: Will teeth be shiny?",
+            "Arriving at Clinic | Yamini: Look at the smile sign! | Aarav: I see the fish tank!",
+            "Dental Chair | Dr. Priya: Let's count shiny teeth! | Aarav: 1... 2... 3... sitting still!",
+            "Finishing Checkup | Dr. Priya: You were super brave! | Aarav: I got a star sticker!"
+        ]
+    elif "haircut" in t_lower:
+        return [
+            "Entering Barber | Yamini: Time for a quick haircut! | Aarav: The cape is smooth.",
+            "Styling Chair | Barber: Ready for scissor clicks? | Aarav: Yes! Holding teddy.",
+            "Trimming Hair | Barber: Trimming top hair! | Aarav: Clippers tickle softly.",
+            "Handsome Haircut | Yamini: Look in the mirror! | Aarav: I look handsome!"
+        ]
+    elif "doctor" in t_lower:
+        return [
+            "Doctor Waiting Room | Yamini: Dr. Sam listens to heartbeat. | Aarav: Playing with wooden beads.",
+            "Stethoscope Test | Dr. Sam: Stethoscope is cool! | Aarav: Thump-thump heartbeat!",
+            "Measuring Height | Nurse: Stand tall like a tree! | Aarav: I am getting taller!",
+            "All Done | Dr. Sam: High five buddy! | Aarav: High five!"
+        ]
+    elif "airport" in t_lower:
+        return [
+            "Packing Bags | Yamini: Bags go on scanner! | Aarav: Teddy gets scanned!",
+            "Security Arch | Officer: Walk through slowly! | Aarav: Walking calmly.",
+            "Picking Up Teddy | Yamini: Here is teddy back! | Aarav: Teddy is safe!",
+            "Boarding Plane | Yamini: Ready to fly! | Aarav: Big airplanes outside!"
+        ]
+    elif "dog" in t_lower:
+        return [
+            "Seeing Dog | Aarav: May I pet your dog? | Owner: Max loves gentle pets!",
+            "Gentle Sniff | Yamini: Let Max sniff your hand! | Aarav: His nose is soft.",
+            "Petting Fur | Aarav: Max wags his tail! | Owner: He likes you Aarav!",
+            "Saying Goodbye | Aarav: Bye Max! | Yamini: Great job asking!"
+        ]
+    else:
+        clean_topic = topic if topic else title
+        return [
+            f"Step 1: Preparing | Yamini: We are starting {clean_topic}! | Aarav: I am ready!",
+            f"Step 2: Transitioning | Yamini: Taking it step by step! | Aarav: Holding blue teddy.",
+            f"Step 3: Following Steps | Teacher: You are doing great Aarav! | Aarav: I am following along!",
+            f"Step 4: Success | Yamini: Proud of you Aarav! | Aarav: I did it!"
+        ]
+
 @app.post("/api/generate_video")
 async def generate_video_api(request: Request):
     try:
@@ -430,12 +484,7 @@ async def generate_video_api(request: Request):
         prompt = body.get("prompt", "").strip()
         
         from app.video_tools import generate_story_video
-        panel_prompts = [
-            f"{title} - Step 1: Getting ready calmly with Mom Yamini",
-            f"{title} - Step 2: Arriving at destination with blue teddy bear",
-            f"{title} - Step 3: Step-by-step transition wearing noise-canceling headphones",
-            f"{title} - Step 4: Finishing successfully with a big smile and receiving a star sticker reward"
-        ]
+        panel_prompts = _build_dialogue_panels(title, prompt)
         video_url = await generate_story_video(panel_prompts=panel_prompts, story_title=title)
         return {"video_url": video_url}
     except Exception as e:
@@ -449,12 +498,7 @@ async def generate_comic_api(request: Request):
         prompt = body.get("prompt", "").strip()
         
         from app.image_tools import generate_comic_book_page
-        panel_prompts = [
-            f"{prompt} - Step 1: Preparing calmly and happily with Mom Yamini",
-            f"{prompt} - Step 2: Arriving at destination with blue teddy bear",
-            f"{prompt} - Step 3: Following step-by-step guidance wearing noise-canceling headphones",
-            f"{prompt} - Step 4: Finishing successfully with a big smile and receiving a star sticker reward"
-        ]
+        panel_prompts = _build_dialogue_panels(title, prompt)
         image_url = await generate_comic_book_page(panel_prompts=panel_prompts, story_title=title)
         return {"image_url": image_url}
     except Exception as e:
