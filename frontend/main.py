@@ -441,6 +441,25 @@ async def generate_video_api(request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.post("/api/generate_comic")
+async def generate_comic_api(request: Request):
+    try:
+        body = await request.json()
+        title = body.get("title", "BuddyCraft Social Story").strip()
+        prompt = body.get("prompt", "").strip()
+        
+        from app.image_tools import generate_comic_book_page
+        panel_prompts = [
+            f"{prompt} - Step 1: Preparing calmly and happily with Mom Yamini",
+            f"{prompt} - Step 2: Arriving at destination with blue teddy bear",
+            f"{prompt} - Step 3: Following step-by-step guidance wearing noise-canceling headphones",
+            f"{prompt} - Step 4: Finishing successfully with a big smile and receiving a star sticker reward"
+        ]
+        image_url = await generate_comic_book_page(panel_prompts=panel_prompts, story_title=title)
+        return {"image_url": image_url}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.get("/api/config")
 async def get_config():
     return {

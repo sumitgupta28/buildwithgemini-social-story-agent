@@ -581,7 +581,25 @@ async function generateAndOpenStory(title, promptText) {
   modal.classList.add('open');
 
   try {
-    const fullPrompt = `${promptText} with story title "${title}"`;
+    const apiRes = await fetch('/api/generate_comic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: title, prompt: promptText })
+    });
+    if (apiRes.ok) {
+      const apiData = await apiRes.json();
+      if (apiData.image_url && !apiData.image_url.includes('Failed')) {
+        currentImageUrl = apiData.image_url;
+        modalBody.innerHTML = `<img src="${apiData.image_url}" class="modal-story-img" alt="${title}">`;
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn("Direct comic API fetch error, trying agent chat...", err);
+  }
+
+  try {
+    const fullPrompt = `Generate a 4-panel comic page for ${promptText} with story title "${title}"`;
     const res = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -589,19 +607,18 @@ async function generateAndOpenStory(title, promptText) {
     });
     const data = await res.json();
     const parts = data.parts || [];
-    const textStr = parts.map(p => p.text || '').join('\n');
+    const textStr = parts.map(p => (p.text || (p.data ? JSON.stringify(p.data) : ''))).join('\n');
     
     // Extract image URL
     const imageUrlRegex = /(https?:\/\/[^\s"'<>\)]+|\/static\/[^\s"'<>\)]+|data:image\/[^;]+;base64,[^\s"'<>\)]+)/gi;
     const matches = [...textStr.matchAll(imageUrlRegex)].map(m => m[0]);
-    const imgUrl = matches.find(u => /\.(jpg|jpeg|png|webp|gif)/i.test(u) || u.startsWith('data:image/') || u.includes('story_cartoons'));
+    const imgUrl = matches.find(u => /\.(jpg|jpeg|png|webp|gif)/i.test(u) || u.startsWith('data:image/') || u.includes('story_cartoons') || u.includes('/static/cartoons/'));
 
     if (imgUrl) {
       currentImageUrl = imgUrl;
       modalBody.innerHTML = `<img src="${imgUrl}" class="modal-story-img" alt="${title}">`;
     } else {
       modalBody.innerHTML = `<p style="color:red">Failed to generate image for given Story.</p>`;
-
     }
   } catch (e) {
     modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
