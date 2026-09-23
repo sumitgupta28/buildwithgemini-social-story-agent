@@ -54,13 +54,14 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-22** | GCS Public Bucket Access & Cartoon Image Proxy Fallback (`frontend/main.py`) | ✅ Completed | 2026-09-22 21:00 UTC | 2026-09-22 21:20 UTC | `cartoon_proxy_middleware` handles GET/HEAD & SVG fallback |
 | **TASK-23** | Automated End-to-End Localhost Verification Suite (`scripts/verify_localhost.py`) | ✅ Completed | 2026-09-22 21:23 UTC | 2026-09-22 21:28 UTC | Added script & `test_frontend_localhost_e2e` to pytest; 17/17 passed |
 | **TASK-24** | Clean internal ADK `generativelanguage.googleapis.com` URIs (`_clean_text_part` in `frontend/main.py`) | ✅ Completed | 2026-09-22 21:38 UTC | 2026-09-22 21:40 UTC | Rewrites internal ADK artifact URIs to local `/static/cartoons/` paths; 17/17 passed |
+| **TASK-25** | Git clone setup, Dockerfile entrypoint fix, `.gcloudignore` creation & Agent Runtime deployment | ✅ Completed | 2026-09-23 16:07 UTC | 2026-09-23 16:21 UTC | Deployed to `projects/724301906101/locations/us-east1/reasoningEngines/5841549147722743808`; 8/8 passed in pytest |
 
 ---
 
 ## 💡 Quick Status Summary
 
-- **Total Tasks Tracked**: 24
-- **Completed**: 24
+- **Total Tasks Tracked**: 25
+- **Completed**: 25
 - **In Progress**: 0
 - **Current Active Branch**: `main`
 
