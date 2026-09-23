@@ -24,7 +24,7 @@ Start with 1-2 eval cases, run `agents-cli eval generate`, then `agents-cli eval
 Run `uv run pytest tests/unit tests/integration`. Fix issues until all tests pass.
 
 ### Phase 5: Deploy to Dev
-**Requires explicit human approval.** Run `agents-cli deploy` only after user confirms. See the **Deployment Guide** for details.
+**Requires explicit human approval.** Run `./scripts/deploy.sh` (or `./scripts/setup_prereqs.sh <PROJECT_ID>` followed by `agents-cli deploy`) only after user confirms.
 
 ### Phase 6: Production Deployment
 Ask the user: Option A (simple single-project) or Option B (full CI/CD pipeline with `agents-cli infra cicd`).
@@ -35,6 +35,8 @@ Ask the user: Option A (simple single-project) or Option B (full CI/CD pipeline 
 |---------|---------|
 | `agents-cli playground` | Interactive local testing |
 | `uv run pytest tests/unit tests/integration` | Run unit and integration tests |
+| `./scripts/setup_prereqs.sh` | Validate and provision GCP infrastructure prerequisites (APIs, GCS bucket, Firestore, IAM) |
+| `./scripts/deploy.sh` | Automated pre-req validation, pytest check, and deployment |
 | `agents-cli eval dataset synthesize` | Synthesize multi-turn eval scenarios for your agent |
 | `agents-cli eval generate` | Run agent on eval dataset, produce traces |
 | `agents-cli eval grade` | Run agent evaluations on the traces |
