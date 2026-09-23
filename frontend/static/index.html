@@ -662,12 +662,26 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Story Scenario / Topic</label>
-        <input type="text" id="custom-topic" class="form-control" placeholder="e.g. Visiting the dentist for teeth checkup">
+        <label>Story Scenario / Topic <span style="font-size:0.8rem; font-weight:normal; color:var(--text-muted);">(Max 100 characters)</span></label>
+        <input type="text" id="custom-topic" class="form-control" maxlength="100" placeholder="e.g. Taking Bath">
       </div>
       <div class="form-group">
-        <label>Comfort Item or Sensory Support</label>
-        <input type="text" id="custom-comfort" class="form-control" value="Blue teddy bear">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <label style="margin:0;">Story Scenario / Topic Description & Dialogues</label>
+          <button type="button" class="btn-sm" style="background:var(--primary-gradient); color:#fff; border:none; display:inline-flex; align-items:center; gap:0.3rem;" onclick="suggestAIStoryline()">
+            <span class="material-symbols-outlined" style="font-size:16px;">auto_awesome</span> ✨ AI Suggest & Enhance
+          </button>
+        </div>
+        <textarea id="custom-desc" class="form-control" rows="5" placeholder="Describe the storyline or character dialogues (or click 'AI Suggest & Enhance')..."></textarea>
+      </div>
+      <div class="form-group">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <label style="margin:0;">Comfort Item or Sensory Support</label>
+          <label style="font-size:0.85rem; font-weight:bold; cursor:pointer; color:var(--text-muted); display:inline-flex; align-items:center; gap:0.3rem;">
+            <input type="checkbox" id="custom-comfort-na" onchange="toggleComfortNA(this)"> Not Applicable (N/A)
+          </label>
+        </div>
+        <input type="text" id="custom-comfort" class="form-control" value="Blue teddy bear" placeholder="e.g. Blue teddy bear, noise-canceling headphones">
       </div>
     </div>
     <div class="modal-actions">
@@ -834,7 +848,7 @@ function renderGallery() {
             <span class="card-badge">${s.category}</span>
           </div>
         </div>
-        <p class="card-desc">${s.description}</p>
+        <p class="card-desc">${s.description.replace(/\n/g, '<br>')}</p>
       </div>
       <div class="card-footer">
         <button class="card-btn" onclick="generateAndOpenStory('${s.title}', '${s.prompt}')">
@@ -976,15 +990,65 @@ function closeCreatorModal() {
   document.getElementById('creator-modal').classList.remove('open');
 }
 
-async function saveCustomScenario(generateAfterSave = false) {
-  const child = (currentProfile.child_name || 'Aarav').trim();
-  const topic = (document.getElementById('custom-topic').value || 'Visiting the dentist').trim();
-  const comfort = (document.getElementById('custom-comfort').value || 'Blue teddy bear').trim();
-  const category = document.getElementById('custom-category').value || 'routines';
+function toggleComfortNA(chk) {
+  const input = document.getElementById('custom-comfort');
+  if (chk.checked) {
+    input.value = "N/A";
+    input.disabled = true;
+  } else {
+    input.value = "Blue teddy bear";
+    input.disabled = false;
+  }
+}
 
-  const title = `${child}'s ${topic}`;
-  const description = `${topic} for ${child} with ${comfort} for sensory comfort.`;
-  const prompt = `Create a visual social story for ${child} ${topic} with comfort item ${comfort}`;
+async function suggestAIStoryline() {
+  const topic = document.getElementById('custom-topic').value.trim();
+  if (!topic) {
+    showToast("⚠️ Please enter a Story Scenario / Topic first!");
+    return;
+  }
+  const category = document.getElementById('custom-category').value;
+  const isNA = document.getElementById('custom-comfort-na').checked;
+  const comfort = isNA ? "N/A" : document.getElementById('custom-comfort').value;
+
+  const descBox = document.getElementById('custom-desc');
+  descBox.value = "✨ Generating AI storyline & dialogues...";
+
+  try {
+    const res = await fetch('/api/suggest_storyline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: topic, category: category, comfort: comfort })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.description) {
+        descBox.value = data.description;
+        showToast("✨ AI storyline & dialogues generated! You can edit them freely.");
+        return;
+      }
+    }
+  } catch (e) {
+    console.error("AI storyline generation error", e);
+  }
+
+  const c_name = currentProfile.child_name || "Child";
+  const m_name = currentProfile.mother_name || "Mom";
+  descBox.value = `Step 1: Preparing | ${m_name}: We are starting ${topic}! | ${c_name}: I am ready!\nStep 2: Transitioning | ${m_name}: Taking it step by step. | ${c_name}: Taking deep breath.\nStep 3: Action | Assistant: You are doing great ${c_name}! | ${c_name}: Following along.\nStep 4: Success | ${m_name}: Super proud of you ${c_name}! | ${c_name}: All done!`;
+}
+
+async function saveCustomScenario(generateAfterSave = false) {
+  const child = (currentProfile.child_name || 'Child').trim();
+  const topic = (document.getElementById('custom-topic').value || 'Taking Bath').trim();
+  const isNA = document.getElementById('custom-comfort-na').checked;
+  const comfort = isNA ? "N/A" : (document.getElementById('custom-comfort').value || 'None').trim();
+  const category = document.getElementById('custom-category').value || 'routines';
+  const customDesc = document.getElementById('custom-desc').value.trim();
+
+  // Exclude kid's name from scenario title
+  const title = topic;
+  const description = customDesc || `${topic} story with sensory support: ${comfort}.`;
+  const prompt = `Create a visual social story for ${topic} with comfort item ${comfort}`;
   const icon = category === 'medical' ? '🦷' : category === 'school' ? '🏫' : category === 'transitions' ? '✈️' : category === 'social' ? '🐕' : '✨';
 
   closeCreatorModal();

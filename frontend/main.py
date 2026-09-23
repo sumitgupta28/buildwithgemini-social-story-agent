@@ -313,7 +313,7 @@ DEFAULT_SCENARIOS = [
         "category": "school",
         "title": "Riding the School Bus",
         "icon": "🚌",
-        "description": "Boarding the yellow school bus calmly with noise-canceling headphones.",
+        "description": "Boarding the yellow school bus calmly with noise-canceling headphones and friendly bus driver greeting.",
         "prompt": "Riding the School Bus"
     },
     {
@@ -321,7 +321,7 @@ DEFAULT_SCENARIOS = [
         "category": "medical",
         "title": "Dentist Visit",
         "icon": "🦷",
-        "description": "Visiting the dentist for a friendly teeth checkup with Mom.",
+        "description": "Visiting the dental clinic for a gentle teeth checkup and counting shiny teeth with Dr. Smith.",
         "prompt": "Dentist Visit"
     },
     {
@@ -329,7 +329,7 @@ DEFAULT_SCENARIOS = [
         "category": "routines",
         "title": "Haircut Time",
         "icon": "✂️",
-        "description": "Getting a gentle haircut with quiet electric clippers.",
+        "description": "Getting a quiet, comfortable haircut with soft electric clippers and cape.",
         "prompt": "Haircut Time"
     },
     {
@@ -345,7 +345,7 @@ DEFAULT_SCENARIOS = [
         "category": "transitions",
         "title": "Airport Security",
         "icon": "✈️",
-        "description": "Passing through airport security luggage scanner with blue teddy bear.",
+        "description": "Passing through airport security luggage scanner calmly with blue teddy bear.",
         "prompt": "Airport Security"
     },
     {
@@ -353,7 +353,7 @@ DEFAULT_SCENARIOS = [
         "category": "social",
         "title": "Meeting a Friendly Dog",
         "icon": "🐕",
-        "description": "Asking owner before gently petting a friendly golden retriever.",
+        "description": "Asking owner politely before gently petting a friendly golden retriever.",
         "prompt": "Meeting a Friendly Dog"
     }
 ]
@@ -372,6 +372,67 @@ async def update_profile_api(request: Request):
         from app.family_tools import update_active_profile
         updated = update_active_profile(body)
         return updated
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/suggest_storyline")
+async def suggest_storyline_api(request: Request):
+    try:
+        body = await request.json()
+        topic = body.get("topic", "").strip()
+        category = body.get("category", "routines").strip()
+        comfort = body.get("comfort", "").strip()
+
+        if not topic:
+            return JSONResponse(status_code=400, content={"error": "Topic is required."})
+
+        from app.family_tools import get_active_profile
+        profile = get_active_profile()
+        c_name = profile.get("child_name", "Child")
+        m_name = profile.get("mother_name", "Mom")
+
+        roster_str = ", ".join([f"{c.get('name')} ({c.get('role')})" for c in profile.get("characters", []) if isinstance(c, dict) and c.get("name")])
+        if not roster_str:
+            roster_str = "Teacher Ms. Priya, Dentist Dr. Smith"
+
+        comfort_str = f"Comfort item: {comfort}." if comfort and comfort.lower() not in ["n/a", "none", "not applicable"] else "No specific comfort item."
+
+        suggested_text = ""
+        try:
+            from google import genai
+            client = genai.Client()
+            prompt = (
+                f"You are an expert Speech-Language Pathologist creating a Carol Gray Social Story.\n"
+                f"Target Child: {c_name}\n"
+                f"Mother: {m_name}\n"
+                f"Available Characters: {roster_str}\n"
+                f"Topic: {topic} (Category: {category})\n"
+                f"{comfort_str}\n\n"
+                f"Generate a clear, gentle 4-panel social story dialogue between characters.\n"
+                f"Output exactly 4 lines in format:\n"
+                f"Step 1: Preparing | {m_name}: We are starting {topic}! | {c_name}: I am ready!\n"
+                f"Step 2: Transitioning | {m_name}: Taking it step by step. | {c_name}: Holding blue teddy.\n"
+                f"Step 3: Action | Assistant: Great job {c_name}! | {c_name}: Following along.\n"
+                f"Step 4: Success | {m_name}: Super proud of you {c_name}! | {c_name}: All done!"
+            )
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            if response and response.text:
+                suggested_text = response.text.strip()
+        except Exception as err:
+            print(f"Gemini API suggest error: {err}")
+
+        if not suggested_text:
+            suggested_text = (
+                f"Step 1: Preparing | {m_name}: We are starting {topic}! | {c_name}: I am ready!\n"
+                f"Step 2: Transitioning | {m_name}: Taking it step by step. | {c_name}: Taking deep breath.\n"
+                f"Step 3: Action | Helper: You are doing great {c_name}! | {c_name}: Following along.\n"
+                f"Step 4: Success | {m_name}: Super proud of you {c_name}! | {c_name}: All done!"
+            )
+
+        return {"description": suggested_text}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
