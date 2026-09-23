@@ -92,14 +92,27 @@ async def generate_story_video(
 
         # Bottom Subtitle Banner
         fdraw.rectangle([0, 615, width, height], fill="#1e293b")
-        if idx < len(panel_prompts):
-            sub_text = panel_prompts[idx].replace("*", "").strip()
-            lines = _wrap_text(sub_text, max_chars=60)
-            if len(lines) == 1:
-                fdraw.text((width // 2, 660), lines[0], fill="#ffffff", font=sub_font, anchor="mm")
-            elif len(lines) >= 2:
-                fdraw.text((width // 2, 642), lines[0], fill="#ffffff", font=sub_font, anchor="mm")
-                fdraw.text((width // 2, 678), lines[1], fill="#4cc9f0", font=sub_font, anchor="mm")
+        sub_text = panel_prompts[idx].replace("*", "").strip() if idx < len(panel_prompts) else ""
+        lines = _wrap_text(sub_text, max_chars=60)
+        if len(lines) == 1:
+            fdraw.text((width // 2, 660), lines[0], fill="#ffffff", font=sub_font, anchor="mm")
+        elif len(lines) >= 2:
+            fdraw.text((width // 2, 642), lines[0], fill="#ffffff", font=sub_font, anchor="mm")
+            fdraw.text((width // 2, 678), lines[1], fill="#4cc9f0", font=sub_font, anchor="mm")
+
+        # Speech bubble overlay on top half of video panel
+        if ":" in sub_text or '"' in sub_text:
+            dialogue_line = sub_text.split(":")[-1].replace('"', '').strip() if ":" in sub_text else sub_text
+            fdraw.rounded_rectangle([150, 105, 450, 165], radius=12, fill="#ffffff", outline="#334155", width=3)
+            fdraw.polygon([(170, 165), (160, 178), (185, 165)], fill="#ffffff")
+            fdraw.line([(170, 165), (160, 178)], fill="#334155", width=3)
+            fdraw.line([(160, 178), (185, 165)], fill="#334155", width=3)
+            b_lines = _wrap_text(dialogue_line, max_chars=25)
+            if len(b_lines) == 1:
+                fdraw.text((300, 135), b_lines[0], fill="#1e293b", font=sub_font, anchor="mm")
+            elif len(b_lines) >= 2:
+                fdraw.text((300, 122), b_lines[0], fill="#1e293b", font=sub_font, anchor="mm")
+                fdraw.text((300, 148), b_lines[1], fill="#1e293b", font=sub_font, anchor="mm")
 
         frame_arr = iio.imread(io.BytesIO(_img_to_bytes(frame)))
         repeat_count = int(panel_duration * fps)

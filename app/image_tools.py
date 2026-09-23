@@ -139,11 +139,42 @@ def _composite_panels_to_single_image(
     canvas.save(out, format="JPEG", quality=92)
     return out.getvalue()
 
+def _draw_speech_bubble(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int], text: str, font: ImageFont.ImageFont, tail_side: str = "left"):
+    x1, y1, x2, y2 = box
+    draw.rounded_rectangle([x1, y1, x2, y2], radius=10, fill="#ffffff", outline="#334155", width=3)
+    if tail_side == "left":
+        tail = [(x1 + 12, y2), (x1 + 6, y2 + 10), (x1 + 24, y2)]
+    else:
+        tail = [(x2 - 24, y2), (x2 - 6, y2 + 10), (x2 - 12, y2)]
+    draw.polygon(tail, fill="#ffffff")
+    draw.line([tail[0], tail[1]], fill="#334155", width=3)
+    draw.line([tail[1], tail[2]], fill="#334155", width=3)
+    
+    clean_text = text.replace('"', '').replace("'", "").strip()
+    words = clean_text.split()
+    lines = []
+    curr = []
+    for w in words:
+        if sum(len(x) for x in curr) + len(w) + len(curr) > 22:
+            lines.append(" ".join(curr))
+            curr = [w]
+        else:
+            curr.append(w)
+    if curr:
+        lines.append(" ".join(curr))
+    lines = lines[:2]
+    
+    line_h = 16
+    start_y = y1 + ((y2 - y1) - len(lines) * line_h) // 2
+    for idx, l in enumerate(lines):
+        draw.text(((x1 + x2) // 2, start_y + idx * line_h), l, fill="#1e293b", font=font, anchor="mm")
+
 async def _fetch_raw_panel_bytes(prompt: str) -> bytes:
     try:
         styled_prompt = (
-            f"A warm, friendly, 2D digital cartoon storybook illustration for children. "
-            f"Non-scary, clean lines, vibrant cheerful colors. "
+            f"A soft 2D chibi cartoon storybook illustration for children. "
+            f"Hand-drawn pencil lineart with soft pastel watercolor shading, muted warm color palette (soft sage greens, dusty teals, soft tan skin tones). "
+            f"Light cream textured background. Expressive cute chibi character features. "
             f"CLOTHING NAME PRINTS: Do NOT draw floating text tags, speech bubbles, or wall signs for character names. "
             f"Instead, print the young child's name clearly across the front of his t-shirt/shirt (e.g. 'AARAV' printed on his shirt) "
             f"and print the mom's name clearly on her top/badge (e.g. 'YAMINI' printed on her shirt/pendant). "
