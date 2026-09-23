@@ -210,16 +210,25 @@ def _draw_speech_bubble(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int
 
 from app.prompts import prompt_registry
 
-async def _fetch_raw_panel_bytes(prompt: str) -> bytes:
+async def _fetch_raw_panel_bytes(prompt: str, child_name: str = None, mother_name: str = None) -> bytes:
     try:
-        styled_prompt = prompt_registry.get_prompt("image_gen", scene_prompt=prompt)
+        from app.family_tools import get_active_profile
+        profile = get_active_profile()
+        c_name = child_name or profile.get("child_name", "Child")
+        m_name = mother_name or profile.get("mother_name", "Mom")
+        
+        styled_prompt = prompt_registry.get_prompt(
+            "image_gen",
+            scene_prompt=prompt,
+            child_name=c_name,
+            mother_name=m_name
+        )
 
         client = genai.Client(
             vertexai=True,
             project=PROJECT_ID,
             location="global",
         )
-
 
         response = client.models.generate_content(
             model="gemini-3.1-flash-lite-image",
@@ -248,7 +257,7 @@ async def generate_cartoon_illustration(
     """Generates a friendly 2D cartoon storybook illustration using Gemini Image Gen.
 
     Args:
-        prompt: Description of the cartoon scene (e.g. '6-year-old boy Aarav sitting in a dentist chair with Mom Yamini').
+        prompt: Description of the cartoon scene.
         tool_context: ADK ToolContext used to save artifact files to Playground.
 
     Returns:
@@ -301,13 +310,17 @@ async def generate_comic_book_page(
     panel_prompts: list[str],
     story_title: str = "",
     tool_context: ToolContext = None,
+    child_name: str = None,
+    mother_name: str = None,
 ) -> str:
     """Generates a single print-ready A4 combined comic book page image containing all panel illustrations composite into one image with top title heading and card subtitles.
 
     Args:
-        panel_prompts: List of scene descriptions for each comic panel step (e.g. ['Aarav putting on shoes with Mom Yamini', 'Aarav walking into dentist office', 'Aarav sitting in dentist chair', 'Aarav getting a star sticker']).
-        story_title: Custom top title heading for the A4 comic page (e.g. 'Aarav Going to the Dentist').
+        panel_prompts: List of scene descriptions for each comic panel step.
+        story_title: Custom top title heading for the A4 comic page.
         tool_context: ADK ToolContext used to save artifact files to Playground.
+        child_name: Optional child name for clothing label prints.
+        mother_name: Optional mother name for clothing label prints.
 
     Returns:
         Public HTTPS URL of the 1 single combined composite A4 comic book page image.
@@ -316,7 +329,7 @@ async def generate_comic_book_page(
         return "No panel prompts provided."
 
     prompts = list(panel_prompts)
-    tasks = [_fetch_raw_panel_bytes(p) for p in prompts]
+    tasks = [_fetch_raw_panel_bytes(p, child_name=child_name, mother_name=mother_name) for p in prompts]
     raw_panel_bytes = await asyncio.gather(*tasks)
 
     composite_bytes = _composite_panels_to_single_image(raw_panel_bytes, panel_subtitles=prompts, story_title=story_title)

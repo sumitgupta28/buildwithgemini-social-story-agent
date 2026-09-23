@@ -19,6 +19,52 @@ PROJECT_ID = _get_project_id()
 _MEMORY_FAMILY_PROFILES = {}
 _MEMORY_STORIES = []
 
+_ACTIVE_PROFILE = {
+    "child_name": "Aarav",
+    "mother_name": "Yamini",
+    "father_name": "Rajesh",
+    "avatar_url": "",
+    "characters": [
+        {"name": "Ms. Priya", "role": "Teacher"},
+        {"name": "Dr. Smith", "role": "Dentist"},
+        {"name": "Mr. Marco", "role": "Barber"},
+        {"name": "Dr. Sam", "role": "Doctor"},
+    ]
+}
+
+def get_active_profile() -> dict:
+    """Returns a copy of the active kid's profile."""
+    return dict(_ACTIVE_PROFILE)
+
+def update_active_profile(data: dict) -> dict:
+    """Updates the active kid's profile."""
+    global _ACTIVE_PROFILE
+    if "child_name" in data and data["child_name"]:
+        _ACTIVE_PROFILE["child_name"] = str(data["child_name"]).strip()
+    if "mother_name" in data and data["mother_name"]:
+        _ACTIVE_PROFILE["mother_name"] = str(data["mother_name"]).strip()
+    if "father_name" in data and data["father_name"]:
+        _ACTIVE_PROFILE["father_name"] = str(data["father_name"]).strip()
+    if "avatar_url" in data:
+        _ACTIVE_PROFILE["avatar_url"] = str(data["avatar_url"]).strip()
+    if "characters" in data and isinstance(data["characters"], list):
+        _ACTIVE_PROFILE["characters"] = data["characters"]
+    return dict(_ACTIVE_PROFILE)
+
+def ensure_character_in_profile(role: str, default_name: str) -> str:
+    """Ensures a character with the given role exists in the profile; adds it if missing."""
+    global _ACTIVE_PROFILE
+    role_clean = role.strip().lower()
+    for char in _ACTIVE_PROFILE.get("characters", []):
+        if char.get("role", "").strip().lower() == role_clean or char.get("name", "").strip().lower() == default_name.strip().lower():
+            return char.get("name")
+    
+    # Add new character
+    new_char = {"name": default_name.strip(), "role": role.strip()}
+    _ACTIVE_PROFILE.setdefault("characters", []).append(new_char)
+    return default_name.strip()
+
+
 def get_firestore_client():
     if firestore is None:
         return None

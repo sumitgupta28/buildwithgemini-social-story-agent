@@ -321,7 +321,7 @@ DEFAULT_SCENARIOS = [
         "category": "medical",
         "title": "Dentist Visit",
         "icon": "🦷",
-        "description": "Visiting the dentist for a friendly teeth checkup with Mom Yamini.",
+        "description": "Visiting the dentist for a friendly teeth checkup with Mom.",
         "prompt": "Dentist Visit"
     },
     {
@@ -360,6 +360,21 @@ DEFAULT_SCENARIOS = [
 
 CUSTOM_SCENARIOS = []
 
+@app.get("/api/profile")
+async def get_profile_api():
+    from app.family_tools import get_active_profile
+    return get_active_profile()
+
+@app.post("/api/profile")
+async def update_profile_api(request: Request):
+    try:
+        body = await request.json()
+        from app.family_tools import update_active_profile
+        updated = update_active_profile(body)
+        return updated
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.get("/api/scenarios")
 async def get_scenarios():
     firestore_scenarios = []
@@ -373,7 +388,6 @@ async def get_scenarios():
     except Exception as e:
         # Gracefully handle uninitialized Firestore DB or pending IAM permissions
         pass
-
 
     all_scenarios = list(DEFAULT_SCENARIOS)
     existing_ids = {s["id"] for s in all_scenarios}
@@ -408,6 +422,18 @@ async def add_scenario(request: Request):
             "prompt": prompt
         }
 
+        # Check for new characters mentioned in title/description and auto-add to profile
+        from app.family_tools import ensure_character_in_profile
+        lower_txt = (title + " " + description + " " + prompt).lower()
+        if "dentist" in lower_txt:
+            ensure_character_in_profile("Dentist", "Dr. Smith")
+        elif "barber" in lower_txt or "haircut" in lower_txt:
+            ensure_character_in_profile("Barber", "Mr. Marco")
+        elif "doctor" in lower_txt:
+            ensure_character_in_profile("Doctor", "Dr. Sam")
+        elif "teacher" in lower_txt or "school" in lower_txt:
+            ensure_character_in_profile("Teacher", "Ms. Priya")
+
         CUSTOM_SCENARIOS.append(scenario_data)
 
         try:
@@ -423,64 +449,77 @@ async def add_scenario(request: Request):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 def _build_dialogue_panels(title: str, topic: str) -> list[str]:
+    from app.family_tools import get_active_profile, ensure_character_in_profile
+    profile = get_active_profile()
+    c_name = profile.get("child_name", "Child")
+    m_name = profile.get("mother_name", "Mom")
+
     t_lower = (title + " " + topic).lower()
     
     if "bus" in t_lower:
+        teacher_name = ensure_character_in_profile("Teacher", "Ms. Priya")
         return [
-            "Waiting for Bus | Yamini: We are waiting for the yellow bus! | Aarav: My blue backpack is ready!",
-            "Boarding Bus | Bus Driver: Good morning Aarav! | Aarav: Good morning! I hold handrail.",
-            "Riding Bus | Friend: Sit with me Aarav! | Aarav: Headphones keep ride quiet.",
-            "Arriving at School | Teacher: Welcome to school Aarav! | Aarav: I did a great job!"
+            f"Waiting for Bus | {m_name}: We are waiting for the yellow bus! | {c_name}: My blue backpack is ready!",
+            f"Boarding Bus | Bus Driver: Good morning {c_name}! | {c_name}: Good morning! I hold handrail.",
+            f"Riding Bus | Friend: Sit with me {c_name}! | {c_name}: Headphones keep ride quiet.",
+            f"Arriving at School | {teacher_name}: Welcome to school {c_name}! | {c_name}: I did a great job!"
         ]
     elif "dentist" in t_lower:
+        dentist_name = ensure_character_in_profile("Dentist", "Dr. Smith")
         return [
-            "Preparing for Dentist | Yamini: Dr. Priya will check teeth! | Aarav: Will teeth be shiny?",
-            "Arriving at Clinic | Yamini: Look at the smile sign! | Aarav: I see the fish tank!",
-            "Dental Chair | Dr. Priya: Let's count shiny teeth! | Aarav: 1... 2... 3... sitting still!",
-            "Finishing Checkup | Dr. Priya: You were super brave! | Aarav: I got a star sticker!"
+            f"Preparing for Dentist | {m_name}: {dentist_name} will check teeth! | {c_name}: Will teeth be shiny?",
+            f"Arriving at Clinic | {m_name}: Look at the smile sign! | {c_name}: I see the fish tank!",
+            f"Dental Chair | {dentist_name}: Let's count shiny teeth! | {c_name}: 1... 2... 3... sitting still!",
+            f"Finishing Checkup | {dentist_name}: You were super brave! | {c_name}: I got a star sticker!"
         ]
     elif "haircut" in t_lower:
+        barber_name = ensure_character_in_profile("Barber", "Mr. Marco")
         return [
-            "Entering Barber | Yamini: Time for a quick haircut! | Aarav: The cape is smooth.",
-            "Styling Chair | Barber: Ready for scissor clicks? | Aarav: Yes! Holding teddy.",
-            "Trimming Hair | Barber: Trimming top hair! | Aarav: Clippers tickle softly.",
-            "Handsome Haircut | Yamini: Look in the mirror! | Aarav: I look handsome!"
+            f"Entering Barber | {m_name}: Time for a quick haircut! | {c_name}: The cape is smooth.",
+            f"Styling Chair | {barber_name}: Ready for scissor clicks? | {c_name}: Yes! Holding teddy.",
+            f"Trimming Hair | {barber_name}: Trimming top hair! | {c_name}: Clippers tickle softly.",
+            f"Handsome Haircut | {m_name}: Look in the mirror! | {c_name}: I look handsome!"
         ]
     elif "doctor" in t_lower:
+        doctor_name = ensure_character_in_profile("Doctor", "Dr. Sam")
         return [
-            "Doctor Waiting Room | Yamini: Dr. Sam listens to heartbeat. | Aarav: Playing with wooden beads.",
-            "Stethoscope Test | Dr. Sam: Stethoscope is cool! | Aarav: Thump-thump heartbeat!",
-            "Measuring Height | Nurse: Stand tall like a tree! | Aarav: I am getting taller!",
-            "All Done | Dr. Sam: High five buddy! | Aarav: High five!"
+            f"Doctor Waiting Room | {m_name}: {doctor_name} listens to heartbeat. | {c_name}: Playing with wooden beads.",
+            f"Stethoscope Test | {doctor_name}: Stethoscope is cool! | {c_name}: Thump-thump heartbeat!",
+            f"Measuring Height | Nurse: Stand tall like a tree! | {c_name}: I am getting taller!",
+            f"All Done | {doctor_name}: High five buddy! | {c_name}: High five!"
         ]
     elif "airport" in t_lower:
         return [
-            "Packing Bags | Yamini: Bags go on scanner! | Aarav: Teddy gets scanned!",
-            "Security Arch | Officer: Walk through slowly! | Aarav: Walking calmly.",
-            "Picking Up Teddy | Yamini: Here is teddy back! | Aarav: Teddy is safe!",
-            "Boarding Plane | Yamini: Ready to fly! | Aarav: Big airplanes outside!"
+            f"Packing Bags | {m_name}: Bags go on scanner! | {c_name}: Teddy gets scanned!",
+            f"Security Arch | Officer: Walk through slowly! | {c_name}: Walking calmly.",
+            f"Picking Up Teddy | {m_name}: Here is teddy back! | {c_name}: Teddy is safe!",
+            f"Boarding Plane | {m_name}: Ready to fly! | {c_name}: Big airplanes outside!"
         ]
     elif "dog" in t_lower:
         return [
-            "Seeing Dog | Aarav: May I pet your dog? | Owner: Max loves gentle pets!",
-            "Gentle Sniff | Yamini: Let Max sniff your hand! | Aarav: His nose is soft.",
-            "Petting Fur | Aarav: Max wags his tail! | Owner: He likes you Aarav!",
-            "Saying Goodbye | Aarav: Bye Max! | Yamini: Great job asking!"
+            f"Seeing Dog | {c_name}: May I pet your dog? | Owner: Max loves gentle pets!",
+            f"Gentle Sniff | {m_name}: Let Max sniff your hand! | {c_name}: His nose is soft.",
+            f"Petting Fur | {c_name}: Max wags his tail! | Owner: He likes you {c_name}!",
+            f"Saying Goodbye | {c_name}: Bye Max! | {m_name}: Great job asking!"
         ]
     else:
         clean_topic = topic if topic else title
+        teacher_name = ensure_character_in_profile("Teacher", "Ms. Priya")
         return [
-            f"Step 1: Preparing | Yamini: We are starting {clean_topic}! | Aarav: I am ready!",
-            f"Step 2: Transitioning | Yamini: Taking it step by step! | Aarav: Holding blue teddy.",
-            f"Step 3: Following Steps | Teacher: You are doing great Aarav! | Aarav: I am following along!",
-            f"Step 4: Success | Yamini: Proud of you Aarav! | Aarav: I did it!"
+            f"Step 1: Preparing | {m_name}: We are starting {clean_topic}! | {c_name}: I am ready!",
+            f"Step 2: Transitioning | {m_name}: Taking it step by step! | {c_name}: Holding blue teddy.",
+            f"Step 3: Following Steps | {teacher_name}: You are doing great {c_name}! | {c_name}: I am following along!",
+            f"Step 4: Success | {m_name}: Proud of you {c_name}! | {c_name}: I did it!"
         ]
 
 @app.post("/api/generate_video")
 async def generate_video_api(request: Request):
     try:
         body = await request.json()
-        title = body.get("title", "Aarav's Social Story").strip()
+        from app.family_tools import get_active_profile
+        profile = get_active_profile()
+        c_name = profile.get("child_name", "Child")
+        title = body.get("title", f"{c_name}'s Social Story").strip()
         prompt = body.get("prompt", "").strip()
         
         from app.video_tools import generate_story_video
@@ -494,12 +533,21 @@ async def generate_video_api(request: Request):
 async def generate_comic_api(request: Request):
     try:
         body = await request.json()
-        title = body.get("title", "BuddyCraft Social Story").strip()
+        from app.family_tools import get_active_profile
+        profile = get_active_profile()
+        c_name = profile.get("child_name", "Child")
+        m_name = profile.get("mother_name", "Mom")
+        title = body.get("title", f"{c_name}'s Social Story").strip()
         prompt = body.get("prompt", "").strip()
         
         from app.image_tools import generate_comic_book_page
         panel_prompts = _build_dialogue_panels(title, prompt)
-        image_url = await generate_comic_book_page(panel_prompts=panel_prompts, story_title=title)
+        image_url = await generate_comic_book_page(
+            panel_prompts=panel_prompts,
+            story_title=title,
+            child_name=c_name,
+            mother_name=m_name
+        )
         return {"image_url": image_url}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
