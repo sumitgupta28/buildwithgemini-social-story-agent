@@ -120,6 +120,32 @@ def _composite_panels_to_single_image(
         resized_img = img.resize((panel_w, img_h), Image.Resampling.LANCZOS)
         canvas.paste(resized_img, (x, y))
 
+        # Render speech bubble overlay on top half of panel image
+        if panel_subtitles and i < len(panel_subtitles):
+            raw_sub = panel_subtitles[i].replace("*", "").replace("#", "").strip()
+            dialogue_segments = []
+            if "|" in raw_sub:
+                parts = raw_sub.split("|")
+                for p in parts[1:]:  # First part is scene caption, rest are dialogue lines
+                    clean_p = p.strip()
+                    if clean_p:
+                        dialogue_segments.append(clean_p)
+                if not dialogue_segments and ":" in raw_sub:
+                    dialogue_segments.append(raw_sub.split(":", 1)[1].strip())
+            elif ":" in raw_sub:
+                dialogue_segments.append(raw_sub.split(":", 1)[1].strip())
+            elif '"' in raw_sub:
+                dialogue_segments.append(raw_sub)
+
+            if dialogue_segments:
+                for d_idx, d_text in enumerate(dialogue_segments[:2]):
+                    side = "left" if d_idx == 0 else "right"
+                    bx1 = x + 15 if side == "left" else x + panel_w - 270
+                    by1 = y + 15 if side == "left" else y + 65
+                    bx2 = bx1 + 255
+                    by2 = by1 + 55
+                    _draw_speech_bubble(draw, (bx1, by1, bx2, by2), d_text, sub_font, tail_side=side)
+
         # Subtitle caption section
         cap_y = y + img_h
         draw.rectangle([x, cap_y, x + panel_w, y + panel_h], fill="#ffffff")
@@ -127,8 +153,8 @@ def _composite_panels_to_single_image(
 
         if panel_subtitles and i < len(panel_subtitles):
             raw_sub = panel_subtitles[i]
-            clean_sub = raw_sub.replace("*", "").replace("#", "").strip()
-            lines = _wrap_text(clean_sub, max_chars=52)
+            clean_caption = raw_sub.split("|")[0].replace("*", "").replace("#", "").strip()
+            lines = _wrap_text(clean_caption, max_chars=52)
             if len(lines) == 1:
                 draw.text((x + panel_w // 2, cap_y + caption_h // 2), lines[0], fill="#1e293b", font=sub_font, anchor="mm")
             elif len(lines) >= 2:
