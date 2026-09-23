@@ -1,189 +1,137 @@
 import os
-import asyncio
+import sys
+import time
 import subprocess
-from PIL import Image
-import imageio.v3 as iio
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 
-async def record_demo():
-    docs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "docs"))
-    temp_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "docs_temp"))
-    os.makedirs(docs_dir, exist_ok=True)
-    os.makedirs(temp_dir, exist_ok=True)
+def record_demo():
+    output_dir = "media"
+    os.makedirs(output_dir, exist_ok=True)
+    raw_video_dir = os.path.join(output_dir, "raw_videos")
+    os.makedirs(raw_video_dir, exist_ok=True)
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            viewport={"width": 1280, "height": 720},
-            record_video_dir=temp_dir,
-            record_video_size={"width": 1280, "height": 720}
+    print("🚀 Starting Playwright browser automation for scenario demo recording...")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            viewport={"width": 1280, "height": 800},
+            record_video_dir=raw_video_dir,
+            record_video_size={"width": 1280, "height": 800}
         )
-        page = await context.new_page()
+        page = context.new_page()
 
-        print("🎬 [1/4] Navigating to Social Story Agent web app...")
-        await page.goto("http://127.0.0.1:8080", wait_until="networkidle")
-        await page.wait_for_timeout(2000)
+        print("🌐 Navigating to http://localhost:8080...")
+        page.goto("http://localhost:8080")
+        page.wait_for_selector(".scenario-card", timeout=15000)
+        time.sleep(2)
 
-        # -------------------------------------------------------------
-        # SCENARIO 1: Dentist Visit
-        # -------------------------------------------------------------
-        print("🦷 [2/4] SCENARIO 1: Dentist Visit - Generating Comic Page...")
-        cards = page.locator(".scenario-card")
-        count = await cards.count()
-        dentist_btn = None
-        bus_btn = None
+        print("📖 Clicking 'View Story' on Dentist Visit scenario...")
+        # Find Dentist Visit card and click View Story button
+        dentist_card = page.locator(".scenario-card", has_text="Dentist Visit")
+        view_btn = dentist_card.locator("button", has_text="View Story")
+        view_btn.click()
+        page.wait_for_selector("#viewer-modal.open", timeout=10000)
+        time.sleep(3) # Pause to inspect read-only social story steps
 
-        for i in range(count):
-            text = await cards.nth(i).inner_text()
-            if "Dentist" in text:
-                dentist_btn = cards.nth(i).locator(".card-btn")
-            elif "School Bus" in text or "Bus" in text:
-                bus_btn = cards.nth(i).locator(".card-btn")
+        print("🎨 Triggering 'Generate Visual Comic Page'...")
+        gen_img_btn = page.locator("button", has_text="Generate Visual Comic Page")
+        gen_img_btn.click()
 
-        if not dentist_btn:
-            dentist_btn = page.locator(".card-btn").first
+        print("⏳ Waiting for visual comic image generation...")
+        page.wait_for_selector("#zoomable-story-img", timeout=45000)
+        time.sleep(2)
 
-        await dentist_btn.click()
+        print("🔍 Testing Zoom In, Zoom Out & Reset controls...")
+        zoom_in_btn = page.locator("button[onclick='zoomInImage()']")
+        zoom_out_btn = page.locator("button[onclick='zoomOutImage()']")
+        reset_btn = page.locator("button[onclick='resetZoomImage()']")
 
-        # Wait for comic image generation
-        await page.wait_for_selector("#viewer-modal.open", timeout=60000)
-        await page.wait_for_selector(".modal-story-img", timeout=90000)
-        print("   ✅ Dentist Visit Comic generated.")
-        await page.wait_for_timeout(2000)
+        # Zoom In 3 times
+        for _ in range(3):
+            zoom_in_btn.click()
+            time.sleep(0.8)
 
-        # ZOOM into comic image section to clearly show dialogue panels & clothing names
-        print("   🔍 Zooming into Dentist Visit image sections...")
-        await page.evaluate("""() => {
-            const img = document.querySelector('.modal-story-img');
-            const modalBody = document.querySelector('.modal-body');
-            if (img && modalBody) {
-                img.style.transition = 'transform 0.8s ease-in-out';
-                modalBody.style.overflow = 'hidden';
-            }
-        }""")
+        # Scroll to inspect panels
+        viewer_body = page.locator("#viewer-body")
+        viewer_body.evaluate("el => el.scrollTop = 200")
+        time.sleep(1)
+        viewer_body.evaluate("el => el.scrollTop = 400")
+        time.sleep(1)
+        viewer_body.evaluate("el => el.scrollTop = 0")
+        time.sleep(1)
 
-        # Zoom Top Left (Panel 1)
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1.8) translate(20%, 20%)'; }")
-        await page.wait_for_timeout(2500)
+        # Zoom Out twice
+        zoom_out_btn.click()
+        time.sleep(0.8)
+        zoom_out_btn.click()
+        time.sleep(0.8)
 
-        # Zoom Top Right (Panel 2)
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1.8) translate(-20%, 20%)'; }")
-        await page.wait_for_timeout(2500)
+        # Reset zoom
+        reset_btn.click()
+        time.sleep(1.5)
 
-        # Zoom Bottom Left (Panel 3)
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1.8) translate(20%, -20%)'; }")
-        await page.wait_for_timeout(2500)
+        print("🎥 Clicking 'Generate Video'...")
+        gen_vid_btn = page.locator("#post-gen-actions button", has_text="Back to Story Text")
+        # Go back to story text or click Generate Video directly
+        gen_vid_btn.click()
+        time.sleep(1.5)
 
-        # Reset Zoom to Full Page
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1) translate(0, 0)'; }")
-        await page.wait_for_timeout(2000)
+        gen_vid_action = page.locator("button", has_text="Generate Video")
+        gen_vid_action.click()
 
-        # Generate Video for Dentist Visit
-        print("   🎥 Generating Dentist Visit 30s Video Story...")
-        video_btn = page.locator("#video-story-btn")
-        await video_btn.click()
-        await page.wait_for_selector("video", timeout=120000)
-        print("   ✅ Dentist Visit Video rendered.")
-        await page.wait_for_timeout(5000)
+        print("⏳ Waiting for 30s Animated Video Story rendering...")
+        page.wait_for_selector("video.modal-story-img", timeout=60000)
+        print("▶️ Video generated and playing!")
+        time.sleep(8) # Let video play
 
-        # Close Viewer Modal
-        close_btn = page.locator(".modal-close").first
-        await close_btn.click()
-        await page.wait_for_timeout(1500)
+        # Get video path BEFORE closing page/context
+        video_obj = page.video
+        video_path = video_obj.path() if video_obj else None
+        
+        context.close()
+        browser.close()
 
-        # -------------------------------------------------------------
-        # SCENARIO 2: Riding the School Bus
-        # -------------------------------------------------------------
-        print("🚌 [3/4] SCENARIO 2: Riding the School Bus - Generating Comic Page...")
-        if not bus_btn:
-            bus_btn = page.locator(".card-btn").nth(1)
+    if not video_path or not os.path.exists(video_path):
+        # Fallback to finding latest webm file in raw_videos
+        webm_files = [os.path.join(raw_video_dir, f) for f in os.listdir(raw_video_dir) if f.endswith('.webm')]
+        if webm_files:
+            video_path = max(webm_files, key=os.path.getmtime)
 
-        await bus_btn.click()
+    print(f"📹 Raw recording saved to: {video_path}")
 
-        # Wait for comic image generation
-        await page.wait_for_selector("#viewer-modal.open", timeout=60000)
-        await page.wait_for_selector(".modal-story-img", timeout=90000)
-        print("   ✅ School Bus Comic generated.")
-        await page.wait_for_timeout(2000)
+    # Output paths
+    docs_dir = "docs"
+    os.makedirs(docs_dir, exist_ok=True)
 
-        # ZOOM into School Bus comic image section
-        print("   🔍 Zooming into School Bus image sections...")
-        await page.evaluate("""() => {
-            const img = document.querySelector('.modal-story-img');
-            const modalBody = document.querySelector('.modal-body');
-            if (img && modalBody) {
-                img.style.transition = 'transform 0.8s ease-in-out';
-                modalBody.style.overflow = 'hidden';
-            }
-        }""")
-
-        # Zoom Top Left (Panel 1)
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1.8) translate(20%, 20%)'; }")
-        await page.wait_for_timeout(2500)
-
-        # Zoom Bottom Left (Panel 3)
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1.8) translate(20%, -20%)'; }")
-        await page.wait_for_timeout(2500)
-
-        # Reset Zoom to Full Page
-        await page.evaluate("() => { document.querySelector('.modal-story-img').style.transform = 'scale(1) translate(0, 0)'; }")
-        await page.wait_for_timeout(2000)
-
-        # Generate Video for School Bus
-        print("   🎥 Generating School Bus 30s Video Story...")
-        video_btn = page.locator("#video-story-btn")
-        await video_btn.click()
-        await page.wait_for_selector("video", timeout=120000)
-        print("   ✅ School Bus Video rendered.")
-        await page.wait_for_timeout(6000)
-
-        # Retrieve video path
-        video_path = await page.video.path()
-        await context.close()
-        await browser.close()
-
-    print(f"📹 Raw WebM recording saved: {video_path}")
-    gif_path = os.path.join(docs_dir, "demo.gif")
-
-    print(f"⚙️ [4/4] Processing WebM frames with Python PIL (speedup & optimized GIF palette)...")
-    raw_frames = iio.imread(video_path)
-    total_frames = len(raw_frames)
-    print(f"   Fetched {total_frames} total frames from recording.")
-
-    # Sample every 8th frame (fast playback speedup)
-    step = 8
-    sampled_images = []
-    target_width = 720
-
-    for idx in range(0, total_frames, step):
-        frame_arr = raw_frames[idx]
-        img = Image.fromarray(frame_arr)
-        w, h = img.size
-        new_h = int(h * (target_width / float(w)))
-        img_resized = img.resize((target_width, new_h), Image.Resampling.LANCZOS)
-        img_quantized = img_resized.quantize(colors=256, method=Image.Quantize.MEDIANCUT)
-        sampled_images.append(img_quantized)
-
-    print(f"   Saving {len(sampled_images)} frames to high-quality {gif_path}...")
-    sampled_images[0].save(
-        gif_path,
-        save_all=True,
-        append_images=sampled_images[1:],
-        optimize=True,
-        duration=90,
-        loop=0,
-        disposal=2
-    )
-
-    print(f"🎉 Saved GIF: {gif_path} ({os.path.getsize(gif_path)} bytes)")
-
-    # Cleanup temp webm
     try:
-        os.remove(video_path)
+        import imageio_ffmpeg
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
-        pass
+        ffmpeg_exe = "ffmpeg"
 
-    print("🎉 Demo recording and GIF generation completed successfully!")
+    gif_paths = [os.path.join(output_dir, "demo_story.gif"), os.path.join(docs_dir, "demo.gif")]
+    mp4_paths = [os.path.join(output_dir, "demo_story.mp4"), os.path.join(docs_dir, "demo.mp4")]
+
+    for gif_path in gif_paths:
+        print(f"⚙️ Converting raw recording to speeded-up GIF ({gif_path}) via ffmpeg...")
+        cmd_gif = [
+            ffmpeg_exe, "-y", "-i", video_path,
+            "-vf", "setpts=0.6*PTS,fps=12,scale=800:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer",
+            gif_path
+        ]
+        subprocess.run(cmd_gif, check=True)
+
+    for mp4_path in mp4_paths:
+        print(f"⚙️ Converting raw recording to MP4 ({mp4_path}) via ffmpeg...")
+        cmd_mp4 = [
+            ffmpeg_exe, "-y", "-i", video_path,
+            "-vf", "setpts=0.6*PTS,scale=1000:-2",
+            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            mp4_path
+        ]
+        subprocess.run(cmd_mp4, check=True)
+
+    print("✅ All demo GIF and MP4 files created successfully!")
 
 if __name__ == "__main__":
-    asyncio.run(record_demo())
+    record_demo()
