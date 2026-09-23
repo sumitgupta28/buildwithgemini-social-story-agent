@@ -63,13 +63,14 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-31** | Deployment to GCP Vertex AI Agent Runtime & verification | ✅ Completed | 2026-09-23 18:27 UTC | 2026-09-23 18:35 UTC | Deployed to `projects/724301906101/locations/us-east1/reasoningEngines/5841549147722743808` & 16/16 tests passed |
 | **TASK-32** | Exclude kid name from scenario titles, modal fields upgrade (100 char topic, description, N/A comfort item, AI storyline suggest button) | ✅ Completed | 2026-09-23 18:44 UTC | 2026-09-23 18:45 UTC | Fixed scenario title name exclusion, upgraded custom scenario modal UI, added `POST /api/suggest_storyline` AI generator endpoint, updated default scenarios format, and 11/11 tests passed |
 | **TASK-33** | Format default catalog scenarios with 4-step dialogues & allow editing/enhancing existing scenarios | ✅ Completed | 2026-09-23 18:51 UTC | 2026-09-23 18:51 UTC | Updated default catalog scenarios with 4-step character dialogues, added `Edit` button on all cards, integrated creator modal pre-population & scenario update API |
+| **TASK-34** | Deferred image generation read-only modal with Edit button, Zoom controls, and conditional Print/Save/Download buttons | ✅ Completed | 2026-09-23 18:58 UTC | 2026-09-23 18:59 UTC | Deferred image generation until explicit click, added Read-Only story preview modal with Edit button, image inspector Zoom controls (+/-), and conditional action buttons |
 
 ---
 
 ## 💡 Quick Status Summary
 
-- **Total Tasks Tracked**: 33
-- **Completed**: 33
+- **Total Tasks Tracked**: 34
+- **Completed**: 34
 - **In Progress**: 0
 - **Current Active Branch**: `main`
 

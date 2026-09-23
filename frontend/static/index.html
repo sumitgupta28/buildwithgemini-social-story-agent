@@ -614,31 +614,69 @@
 
 <!-- Lightbox Viewer Modal -->
 <div class="modal-overlay" id="viewer-modal">
-  <div class="modal-container">
-    <div class="modal-header">
-      <h2 id="viewer-title">Visual Social Story Page</h2>
+  <div class="modal-container" style="max-width: 900px; width: 95%;">
+    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <h2 id="viewer-title" style="margin:0;">Visual Social Story Preview</h2>
+        <span id="viewer-category-badge" class="card-badge" style="margin-top:0.3rem;">routines</span>
+      </div>
       <button class="modal-close" onclick="closeViewerModal()">&times;</button>
     </div>
-    <div class="modal-body" id="viewer-body">
-      <!-- Image or Loader -->
+    
+    <!-- Image Zoom Controls Bar (Hidden by default, shown after image generation) -->
+    <div id="zoom-toolbar" style="display:none; background:#f1f5f9; padding:0.6rem 1.2rem; border-bottom:1px solid var(--border); align-items:center; justify-content:space-between;">
+      <div style="font-weight:700; font-size:0.9rem; color:var(--text-dark); display:flex; align-items:center; gap:0.4rem;">
+        <span class="material-symbols-outlined">zoom_in</span> Image Inspector Controls
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <button class="btn-sm" style="background:#fff; border:1px solid var(--border); padding:0.2rem 0.6rem; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="zoomOutImage()" title="Zoom Out">-</button>
+        <span id="zoom-level-text" style="font-weight:700; font-size:0.85rem; width:55px; text-align:center;">100%</span>
+        <button class="btn-sm" style="background:#fff; border:1px solid var(--border); padding:0.2rem 0.6rem; border-radius:6px; font-weight:bold; cursor:pointer;" onclick="zoomInImage()" title="Zoom In">+</button>
+        <button class="btn-sm" style="background:#fff; border:1px solid var(--border); padding:0.2rem 0.6rem; border-radius:6px; font-size:0.8rem; margin-left:0.5rem; cursor:pointer;" onclick="resetZoomImage()">Reset</button>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-light" onclick="downloadStoryImage()">
-        <span class="material-symbols-outlined">download</span>
-        Download Page
-      </button>
-      <button class="btn btn-light" onclick="printStoryPage()">
-        <span class="material-symbols-outlined">print</span>
-        Print Story Page
-      </button>
-      <button class="btn btn-accent" id="video-story-btn" onclick="generateAndPlayVideoStory()">
-        <span class="material-symbols-outlined">movie</span>
-        🎥 Generate 30s Video Story
-      </button>
-      <button class="btn btn-light" onclick="saveToGooglePhotos()">
-        <span class="material-symbols-outlined">photo_library</span>
-        Save to Photos
-      </button>
+
+    <div class="modal-body" id="viewer-body" style="overflow:auto; max-height:75vh; padding:1.5rem;">
+      <!-- Read-Only Story Content or Generated Image -->
+    </div>
+
+    <!-- Actions Bar -->
+    <div class="modal-actions" id="viewer-actions">
+      <!-- Pre-generation buttons (shown when viewing story preview) -->
+      <div id="pre-gen-actions" style="display:flex; gap:0.6rem; width:100%; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-light" id="edit-story-btn" onclick="editCurrentScenarioFromViewer()">
+          <span class="material-symbols-outlined">edit</span>
+          ✏️ Edit Story
+        </button>
+        <button class="btn btn-accent" onclick="startImageGenerationFromViewer()">
+          <span class="material-symbols-outlined">palette</span>
+          🎨 Generate Visual Comic Page
+        </button>
+        <button class="btn btn-light" style="background:#e0e7ff; color:var(--primary); font-weight:700;" onclick="generateAndPlayVideoStory()">
+          <span class="material-symbols-outlined">movie</span>
+          🎥 Generate Video
+        </button>
+      </div>
+
+      <!-- Post-generation buttons (hidden by default, shown ONLY after image/video generation) -->
+      <div id="post-gen-actions" style="display:none; gap:0.6rem; width:100%; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-light" onclick="downloadStoryImage()">
+          <span class="material-symbols-outlined">download</span>
+          Download Page
+        </button>
+        <button class="btn btn-light" onclick="printStoryPage()">
+          <span class="material-symbols-outlined">print</span>
+          Print Story Page
+        </button>
+        <button class="btn btn-light" onclick="saveToGooglePhotos()">
+          <span class="material-symbols-outlined">photo_library</span>
+          Save to Photos
+        </button>
+        <button class="btn btn-light" style="background:#f1f5f9;" onclick="showStoryPreview(currentActiveScenario)">
+          <span class="material-symbols-outlined">visibility</span>
+          Back to Story Text
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -692,7 +730,7 @@
       </button>
       <button class="btn btn-accent" onclick="saveCustomScenario(true)">
         <span class="material-symbols-outlined">palette</span>
-        Save & Generate Visual Page
+        Save & Preview Story
       </button>
     </div>
   </div>
@@ -708,6 +746,8 @@ let currentStoryTitle = '';
 let currentStoryPrompt = '';
 let googleUserToken = null;
 let editingScenarioId = null;
+let currentActiveScenario = null;
+let currentZoomScale = 1.0;
 
 let currentProfile = {
   child_name: "Aarav",
@@ -853,8 +893,8 @@ function renderGallery() {
       </div>
       <div class="card-footer" style="display:flex; gap:0.5rem;">
         <button class="card-btn" style="flex:1;" onclick="generateAndOpenStory('${s.title}', '${s.prompt}')">
-          <span class="material-symbols-outlined">auto_awesome</span>
-          View Page
+          <span class="material-symbols-outlined">menu_book</span>
+          View Story
         </button>
         <button class="card-btn" style="background:#f1f5f9; color:var(--text-dark); border:1px solid var(--border);" onclick="editScenario('${s.id}')">
           <span class="material-symbols-outlined">edit</span>
@@ -905,34 +945,110 @@ function filterCategory(cat) {
   setCategory(cat);
 }
 
-async function generateAndOpenStory(title, promptText) {
-  currentStoryTitle = title;
-  currentStoryPrompt = promptText;
-  const modal = document.getElementById('viewer-modal');
-  const modalTitle = document.getElementById('viewer-title');
+function generateAndOpenStory(title, promptText) {
+  const s = scenariosData.find(sc => sc.title === title || sc.prompt === promptText) || {
+    id: 'temp',
+    title: title,
+    prompt: promptText,
+    category: 'routines',
+    description: promptText,
+    comfort: 'N/A'
+  };
+  currentActiveScenario = s;
+  showStoryPreview(s);
+}
+
+function showStoryPreview(scenario) {
+  currentActiveScenario = scenario;
+  currentStoryTitle = scenario.title;
+  currentStoryPrompt = scenario.prompt;
+  currentZoomScale = 1.0;
+
+  document.getElementById('viewer-title').textContent = scenario.title;
+  document.getElementById('viewer-category-badge').textContent = scenario.category || 'routines';
+  document.getElementById('zoom-toolbar').style.display = 'none';
+
+  // Show Pre-generation actions, hide Post-generation actions
+  document.getElementById('pre-gen-actions').style.display = 'flex';
+  document.getElementById('post-gen-actions').style.display = 'none';
+
   const modalBody = document.getElementById('viewer-body');
   
-  modalTitle.textContent = title;
+  const lines = (scenario.description || '').split('\n').filter(l => l.trim());
+  let stepsHtml = '';
+  
+  lines.forEach(line => {
+    stepsHtml += `
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-left:4px solid var(--primary); border-radius:10px; padding:0.8rem 1rem; margin-bottom:0.7rem;">
+        <p style="margin:0; font-weight:600; font-size:0.95rem; color:#1e293b;">${line.replace(/\|/g, '<span style="color:var(--primary); margin:0 0.4rem;">•</span>')}</p>
+      </div>
+    `;
+  });
+
+  if (!stepsHtml) {
+    stepsHtml = `<p style="color:var(--text-dark);">${scenario.description}</p>`;
+  }
+
+  const comfortStr = scenario.comfort || 'N/A';
+
   modalBody.innerHTML = `
-    <div class="loader">
-      <div class="spinner"></div>
-      <p>🎨 Visual Story Page generating...</p>
+    <div style="background:#fff; border-radius:16px; padding:1.2rem; border:2px solid var(--border);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.8rem;">
+        <div>
+          <h3 style="margin:0; color:var(--text-dark); font-size:1.25rem;">📖 Social Story Script</h3>
+          <p style="margin:0.2rem 0 0 0; font-size:0.85rem; color:var(--text-muted);">Review Carol Gray social story steps before generating visual image</p>
+        </div>
+        <div style="background:#eef2ff; color:var(--primary); padding:0.4rem 0.8rem; border-radius:12px; font-weight:700; font-size:0.85rem;">
+          🧸 Support Item: ${comfortStr}
+        </div>
+      </div>
+      
+      <div style="margin-bottom:1.2rem;">
+        ${stepsHtml}
+      </div>
+
+      <div style="background:#fff7ed; border:1px solid #ffedd5; border-radius:12px; padding:0.8rem 1rem; color:#c2410c; font-size:0.85rem; display:flex; align-items:center; gap:0.5rem;">
+        <span class="material-symbols-outlined">info</span>
+        <span>Click <b>"🎨 Generate Visual Comic Page"</b> below when ready to render the artwork, or <b>"✏️ Edit Story"</b> to customize lines first.</span>
+      </div>
     </div>
   `;
-  modal.classList.add('open');
+
+  document.getElementById('viewer-modal').classList.add('open');
+}
+
+function editCurrentScenarioFromViewer() {
+  closeViewerModal();
+  if (currentActiveScenario && currentActiveScenario.id) {
+    editScenario(currentActiveScenario.id);
+  } else {
+    openCreatorModal(false);
+  }
+}
+
+async function startImageGenerationFromViewer() {
+  const modalBody = document.getElementById('viewer-body');
+  document.getElementById('pre-gen-actions').style.display = 'none';
+
+  modalBody.innerHTML = `
+    <div class="loader" style="padding:3rem 0;">
+      <div class="spinner"></div>
+      <p style="font-size:1.1rem; margin-top:1rem;">🎨 Visual Social Story Page generating...</p>
+      <p style="font-size:0.85rem; color:var(--text-muted);">Applying Carol Gray 4-panel style with high resolution artwork...</p>
+    </div>
+  `;
 
   try {
     const apiRes = await fetch('/api/generate_comic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: title, prompt: promptText })
+      body: JSON.stringify({ title: currentStoryTitle, prompt: currentStoryPrompt })
     });
     if (apiRes.ok) {
       const apiData = await apiRes.json();
       if (apiData.image_url && !apiData.image_url.includes('Failed')) {
         currentImageUrl = apiData.image_url;
-        modalBody.innerHTML = `<img src="${apiData.image_url}" class="modal-story-img" alt="${title}">`;
-        // Reload profile in case a new character was auto-added
+        renderGeneratedImageWithZoom(apiData.image_url);
         loadProfile();
         return;
       }
@@ -942,7 +1058,7 @@ async function generateAndOpenStory(title, promptText) {
   }
 
   try {
-    const fullPrompt = `Generate a 4-panel comic page for ${promptText} with story title "${title}"`;
+    const fullPrompt = `Generate a 4-panel comic page for ${currentStoryPrompt} with story title "${currentStoryTitle}"`;
     const res = await fetch('/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -952,28 +1068,79 @@ async function generateAndOpenStory(title, promptText) {
     const parts = data.parts || [];
     const textStr = parts.map(p => (p.text || (p.data ? JSON.stringify(p.data) : ''))).join('\n');
     
-    // Extract image URL
     const imageUrlRegex = /(https?:\/\/[^\s"'<>\)]+|\/static\/[^\s"'<>\)]+|data:image\/[^;]+;base64,[^\s"'<>\)]+)/gi;
     const matches = [...textStr.matchAll(imageUrlRegex)].map(m => m[0]);
     const imgUrl = matches.find(u => /\.(jpg|jpeg|png|webp|gif)/i.test(u) || u.startsWith('data:image/') || u.includes('story_cartoons') || u.includes('/static/cartoons/'));
 
     if (imgUrl) {
       currentImageUrl = imgUrl;
-      modalBody.innerHTML = `<img src="${imgUrl}" class="modal-story-img" alt="${title}">`;
+      renderGeneratedImageWithZoom(imgUrl);
     } else {
-      modalBody.innerHTML = `<p style="color:red">Failed to generate image for given Story.</p>`;
+      modalBody.innerHTML = `<p style="color:red; text-align:center; padding:2rem;">Failed to generate image for given Story.</p>`;
+      document.getElementById('pre-gen-actions').style.display = 'flex';
     }
   } catch (e) {
-    modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
+    modalBody.innerHTML = `<p style="color:red; text-align:center; padding:2rem;">Error: ${e.message}</p>`;
+    document.getElementById('pre-gen-actions').style.display = 'flex';
+  }
+}
+
+function renderGeneratedImageWithZoom(imgUrl) {
+  currentZoomScale = 1.0;
+  document.getElementById('zoom-toolbar').style.display = 'flex';
+  updateZoomUI();
+
+  // Show Post-generation actions (Print, Save, Download) ONLY AFTER image is generated
+  document.getElementById('pre-gen-actions').style.display = 'none';
+  document.getElementById('post-gen-actions').style.display = 'flex';
+
+  const modalBody = document.getElementById('viewer-body');
+  modalBody.innerHTML = `
+    <div style="width:100%; text-align:center; overflow:auto; padding:1rem 0;">
+      <img id="zoomable-story-img" src="${imgUrl}" class="modal-story-img" alt="${currentStoryTitle}" style="transform-origin: top center; transition: transform 0.2s ease; max-width: 100%; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);">
+    </div>
+  `;
+}
+
+function zoomInImage() {
+  if (currentZoomScale < 3.0) {
+    currentZoomScale += 0.25;
+    updateZoomUI();
+  }
+}
+
+function zoomOutImage() {
+  if (currentZoomScale > 0.5) {
+    currentZoomScale -= 0.25;
+    updateZoomUI();
+  }
+}
+
+function resetZoomImage() {
+  currentZoomScale = 1.0;
+  updateZoomUI();
+}
+
+function updateZoomUI() {
+  const img = document.getElementById('zoomable-story-img');
+  const txt = document.getElementById('zoom-level-text');
+  if (txt) {
+    txt.textContent = `${Math.round(currentZoomScale * 100)}%`;
+  }
+  if (img) {
+    img.style.transform = `scale(${currentZoomScale})`;
   }
 }
 
 async function generateAndPlayVideoStory() {
   const modalBody = document.getElementById('viewer-body');
+  document.getElementById('pre-gen-actions').style.display = 'none';
+  document.getElementById('zoom-toolbar').style.display = 'none';
+
   modalBody.innerHTML = `
-    <div class="loader">
+    <div class="loader" style="padding:3rem 0;">
       <div class="spinner"></div>
-      <p>🎥 Generating 30-Second Animated Video Story...</p>
+      <p style="font-size:1.1rem; margin-top:1rem;">🎥 Generating 30-Second Animated Video Story...</p>
     </div>
   `;
 
@@ -999,15 +1166,18 @@ async function generateAndPlayVideoStory() {
             Your browser does not support HTML5 video.
           </video>
         `;
+        document.getElementById('post-gen-actions').style.display = 'flex';
         showToast('🎥 30-Second Animated Video Story ready!');
         return;
       }
     }
     
     const errText = await apiRes.text();
-    modalBody.innerHTML = `<p style="color:red">Failed to generate 30s video story (${apiRes.status}: ${errText})</p>`;
+    modalBody.innerHTML = `<p style="color:red; text-align:center; padding:2rem;">Failed to generate 30s video story (${apiRes.status}: ${errText})</p>`;
+    document.getElementById('pre-gen-actions').style.display = 'flex';
   } catch (e) {
-    modalBody.innerHTML = `<p style="color:red">Error: ${e.message}</p>`;
+    modalBody.innerHTML = `<p style="color:red; text-align:center; padding:2rem;">Error: ${e.message}</p>`;
+    document.getElementById('pre-gen-actions').style.display = 'flex';
   }
 }
 
