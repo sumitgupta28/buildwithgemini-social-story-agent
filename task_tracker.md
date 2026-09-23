@@ -65,13 +65,14 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-33** | Format default catalog scenarios with 4-step dialogues & allow editing/enhancing existing scenarios | ✅ Completed | 2026-09-23 18:51 UTC | 2026-09-23 18:51 UTC | Updated default catalog scenarios with 4-step character dialogues, added `Edit` button on all cards, integrated creator modal pre-population & scenario update API |
 | **TASK-34** | Deferred image generation read-only modal with Edit button, Zoom controls, and conditional Print/Save/Download buttons | ✅ Completed | 2026-09-23 18:58 UTC | 2026-09-23 18:59 UTC | Deferred image generation until explicit click, added Read-Only story preview modal with Edit button, image inspector Zoom controls (+/-), and conditional action buttons |
 | **TASK-35** | Add `demo-video-generator` agent skill, record full scenario demo video & GIF, update README.md | ✅ Completed | 2026-09-23 19:13 UTC | 2026-09-23 19:14 UTC | Added demo-video-generator skill, recorded Playwright browser demo video with zoom controls & video rendering, generated docs/demo.gif & docs/demo.mp4, updated README.md |
+| **TASK-36** | Promotional video & GIF generation for School Bus (image gen & zoom) + Doctor Checkup (30s video story) scenarios | ✅ Completed | 2026-09-23 19:25 UTC | 2026-09-23 19:26 UTC | Updated record_demo.py script to record dual scenarios (Riding School Bus image gen & Doctor Checkup 30s video), rendered speeded-up docs/demo.gif & docs/demo.mp4, updated repo |
 
 ---
 
 ## 💡 Quick Status Summary
 
-- **Total Tasks Tracked**: 35
-- **Completed**: 35
+- **Total Tasks Tracked**: 36
+- **Completed**: 36
 - **In Progress**: 0
 - **Current Active Branch**: `main`
 
