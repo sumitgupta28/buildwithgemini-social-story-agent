@@ -60,13 +60,14 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-28** | Full-page dynamic canvas fitting & large NotoSans-Bold header title typography (`app/image_tools.py`) | ✅ Completed | 2026-09-23 17:05 UTC | 2026-09-23 17:07 UTC | Eliminated bottom empty whitespace, set header title font size to 44, and verified visual output |
 | **TASK-29** | Centralized Prompt Management & Versioning Registry (`app/prompts/registry.py` & YAML templates) | ✅ Completed | 2026-09-23 18:07 UTC | 2026-09-23 18:08 UTC | Option 1: YAML + Jinja2 SemVer Prompt Registry implemented & 6/6 unit tests passed |
 | **TASK-30** | Kid's Profile Page, Character Roster, dynamic prompt name binding & 2-Column UI layout | ✅ Completed | 2026-09-23 18:25 UTC | 2026-09-23 18:27 UTC | Added Kid Profile CRUD endpoints, photo upload, character roster manager, zero hardcoded names in prompts, 2-column layout, and 9/9 unit tests passed |
+| **TASK-31** | Deployment to GCP Vertex AI Agent Runtime & verification | ✅ Completed | 2026-09-23 18:27 UTC | 2026-09-23 18:35 UTC | Deployed to `projects/724301906101/locations/us-east1/reasoningEngines/5841549147722743808` & 16/16 tests passed |
 
 ---
 
 ## 💡 Quick Status Summary
 
-- **Total Tasks Tracked**: 30
-- **Completed**: 30
+- **Total Tasks Tracked**: 31
+- **Completed**: 31
 - **In Progress**: 0
 - **Current Active Branch**: `main`
 

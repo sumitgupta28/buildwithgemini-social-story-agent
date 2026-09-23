@@ -15,3 +15,7 @@ docs/
 demo*
 frontend/node_modules
 node_modules/
+frontend/static/cartoons/*.jpg
+frontend/static/cartoons/*.jpeg
+frontend/static/cartoons/*.png
+frontend/static/cartoons/*.mp4
