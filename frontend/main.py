@@ -33,6 +33,7 @@ import re
 import google.auth
 import google.auth.transport.requests
 import httpx
+from app.app_utils.project_id import get_project_id
 from a2a.client import ClientConfig, ClientFactory
 from a2a.types import (
     AgentCard,
@@ -247,15 +248,10 @@ async def cartoon_proxy_middleware(request: Request, call_next):
             return FileResponse(local_path)
         
         # GCS proxy fallback
-        project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
-        if not project_id:
-            try:
-                import google.auth
-                _, project_id = google.auth.default()
-            except Exception:
-                pass
-        if not project_id:
-            project_id = "qwiklabs-gcp-01-eb84874d9448"
+        try:
+            project_id = get_project_id()
+        except Exception:
+            project_id = "unknown"
 
         bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
         gcs_url = f"https://storage.googleapis.com/{bucket_name}/story_cartoons/{filename}"
@@ -289,15 +285,10 @@ async def get_cartoon_file(filename: str):
         return FileResponse(local_path)
     
     # GCS proxy fallback
-    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
-    if not project_id:
-        try:
-            import google.auth
-            _, project_id = google.auth.default()
-        except Exception:
-            pass
-    if not project_id:
-        project_id = "qwiklabs-gcp-01-eb84874d9448"
+    try:
+        project_id = get_project_id()
+    except Exception:
+        project_id = "unknown"
 
     bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
     gcs_url = f"https://storage.googleapis.com/{bucket_name}/story_cartoons/{filename}"

@@ -9,8 +9,12 @@ from google.genai import types
 from google.adk.tools import ToolContext
 from app.image_tools import _fetch_raw_panel_bytes, _wrap_text
 
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-01-eb84874d9448")
-BUCKET_NAME = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{PROJECT_ID}")
+from app.app_utils.project_id import get_project_id
+
+def _get_bucket_name() -> tuple[str, str]:
+    project_id = get_project_id()
+    bucket_name = os.environ.get("MEDIA_BUCKET_NAME", f"social-story-media-{project_id}")
+    return project_id, bucket_name
 
 
 async def generate_story_video(
@@ -126,12 +130,13 @@ async def generate_story_video(
             pass
 
     try:
-        storage_client = storage.Client(project=PROJECT_ID)
-        bucket = storage_client.bucket(BUCKET_NAME)
+        project_id, bucket_name = _get_bucket_name()
+        storage_client = storage.Client(project=project_id)
+        bucket = storage_client.bucket(bucket_name)
         blob_name = f"story_cartoons/{filename}"
         blob = bucket.blob(blob_name)
         blob.upload_from_string(video_bytes, content_type=mime_type)
-        return f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
+        return f"https://storage.googleapis.com/{bucket_name}/{blob_name}"
     except Exception as gcs_err:
         print(f"GCS Video Upload failed ({gcs_err}), saving local static file fallback...")
         static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "static", "cartoons")

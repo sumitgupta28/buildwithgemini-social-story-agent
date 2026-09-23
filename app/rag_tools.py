@@ -2,18 +2,13 @@ import os
 import vertexai
 from vertexai.preview import rag
 
-def _get_project_id() -> str:
-    if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-        return os.environ["GOOGLE_CLOUD_PROJECT"]
-    try:
-        import google.auth
-        _, project = google.auth.default()
-        if project:
-            return project
-    except Exception:
-        pass
-    return "qwiklabs-gcp-01-eb84874d9448"
+from app.app_utils.project_id import get_project_id
 
+def _get_project_id() -> str:
+    try:
+        return get_project_id()
+    except Exception:
+        return ""
 
 PROJECT_ID = _get_project_id()
 RAG_CORPUS_RESOURCE = os.environ.get("RAG_CORPUS_RESOURCE", "")
