@@ -208,23 +208,18 @@ def _draw_speech_bubble(draw: ImageDraw.ImageDraw, box: tuple[int, int, int, int
     for idx, l in enumerate(lines):
         draw.text(((x1 + x2) // 2, start_y + idx * line_h), l, fill="#1e293b", font=font, anchor="mm")
 
+from app.prompts import prompt_registry
+
 async def _fetch_raw_panel_bytes(prompt: str) -> bytes:
     try:
-        styled_prompt = (
-            f"A soft 2D chibi cartoon storybook illustration for children. "
-            f"Hand-drawn pencil lineart with soft pastel watercolor shading, muted warm color palette (soft sage greens, dusty teals, soft tan skin tones). "
-            f"Light cream textured background. Expressive cute chibi character features. "
-            f"CLOTHING NAME PRINTS: Do NOT draw floating text tags, speech bubbles, or wall signs for character names. "
-            f"Instead, print the young child's name clearly across the front of his t-shirt/shirt (e.g. 'AARAV' printed on his shirt) "
-            f"and print the mom's name clearly on her top/badge (e.g. 'YAMINI' printed on her shirt/pendant). "
-            f"Scene: {prompt}"
-        )
+        styled_prompt = prompt_registry.get_prompt("image_gen", scene_prompt=prompt)
 
         client = genai.Client(
             vertexai=True,
             project=PROJECT_ID,
             location="global",
         )
+
 
         response = client.models.generate_content(
             model="gemini-3.1-flash-lite-image",

@@ -58,6 +58,7 @@ To maintain accountability, complete history, and clear progress tracking across
 | **TASK-26** | Chibi comic art style, vector speech bubble compositing, dialogue prompt & skill (`chibi-comic-dialogue`) | ✅ Completed | 2026-09-23 16:44 UTC | 2026-09-23 16:45 UTC | Created skill, updated image/video/agent tools; 8/8 passed in pytest |
 | **TASK-27** | Interactive multi-character speech bubble dialogue scenario builder (`_build_dialogue_panels`) in `frontend/main.py` | ✅ Completed | 2026-09-23 16:57 UTC | 2026-09-23 16:58 UTC | Added rich multi-speaker dialogue to all scenario catalog cards matching reference comic style |
 | **TASK-28** | Full-page dynamic canvas fitting & large NotoSans-Bold header title typography (`app/image_tools.py`) | ✅ Completed | 2026-09-23 17:05 UTC | 2026-09-23 17:07 UTC | Eliminated bottom empty whitespace, set header title font size to 44, and verified visual output |
+| **TASK-29** | Centralized Prompt Management & Versioning Registry (`app/prompts/registry.py` & YAML templates) | ✅ Completed | 2026-09-23 18:07 UTC | 2026-09-23 18:08 UTC | Option 1: YAML + Jinja2 SemVer Prompt Registry implemented & 6/6 unit tests passed |
 
 ---
 

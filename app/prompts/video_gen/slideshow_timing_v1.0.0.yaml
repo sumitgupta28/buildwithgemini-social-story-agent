@@ -1,0 +1,13 @@
+metadata:
+  name: slideshow_timing
+  category: video_gen
+  version: 1.0.0
+  author: BuddyCraft Team
+  description: >
+    Specification and timing configuration for 30-second animated video story generation.
+
+template: |
+  Video Duration: 30 seconds total (300 frames at 10 fps).
+  Title Intro Slide: {{ intro_duration_sec | default(3) }} seconds.
+  Panel Slide Distribution: {{ panel_count | default(4) }} panels across {{ 30 - (intro_duration_sec | default(3)) }} seconds.
+  Dialogue Animation: Speaker 1 bubble (0%-50%), Speaker 2 bubble (50%-100%).

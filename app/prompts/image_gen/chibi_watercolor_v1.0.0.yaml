@@ -1,0 +1,11 @@
+metadata:
+  name: chibi_watercolor
+  category: image_gen
+  version: 1.0.0
+  author: BuddyCraft Team
+  description: >
+    Visual prompt decorator for generating soft 2D chibi cartoon storybook illustrations with pastel watercolor shading
+    and clothing character name tags.
+
+template: |
+  A soft 2D chibi cartoon storybook illustration for children. Hand-drawn pencil lineart with soft pastel watercolor shading, muted warm color palette (soft sage greens, dusty teals, soft tan skin tones). Light cream textured background. Expressive cute chibi character features. CLOTHING NAME PRINTS: Do NOT draw floating text tags, speech bubbles, or wall signs for character names. Instead, print the young child's name clearly across the front of his t-shirt/shirt (e.g. 'AARAV' printed on his shirt) and print the mom's name clearly on her top/badge (e.g. 'YAMINI' printed on her shirt/pendant). Scene: {{ scene_prompt }}
